@@ -2,8 +2,10 @@ import {assert} from 'chai';
 import 'mocha';
 
 import {
+  evaluate,
   ExpressionNode,
   NodeType,
+  parse,
   ParseError,
   ParseErrorCode,
   Parser,
@@ -144,7 +146,6 @@ describe('Parser', () => {
         const tokenization = tokenize(src);
         const parser = new Parser(tokenization[0] as Token[]);
         const observed = parser.parse();
-        console.log(JSON.stringify(observed, null, 2));
         assert.deepEqual(observed, expected);
       });
     }
@@ -211,8 +212,7 @@ describe('Parser', () => {
         try {
           const tokenization = tokenize(src);
           const parser = new Parser(tokenization[0] as Token[]);
-          const observed = parser.parse();
-          console.log(JSON.stringify(observed, null, 2));
+          parser.parse();
         } catch (e) {
           if (e instanceof ParseError) {
             ok = true;
@@ -223,6 +223,35 @@ describe('Parser', () => {
         } finally {
           assert.isTrue(ok);
         }
+      });
+    }
+  });
+
+  describe('String interpolations', () => {
+    const context = {
+      x: 456,
+      y: {z: 789},
+      f: (a: number, b: number) => a + b,
+    };
+
+    const cases: {name: string; src: string; expected: string}[] = [
+      {
+        name: 'general',
+        src: 'abc${+4}def',
+        expected: 'abc4def',
+      },
+      {
+        name: 'complex',
+        src: 'abc: ${x} def ${y.z} ${f(1,x)}',
+        expected: 'abc: 456 def 789 457',
+      },
+    ];
+    for (const {name, src, expected} of cases) {
+      it(name, () => {
+        const expression = parse(src);
+        const observed = evaluate(context, expression);
+        // console.log(JSON.stringify(observed, null, 2));
+        assert.equal(observed, expected);
       });
     }
   });

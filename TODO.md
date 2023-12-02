@@ -1,8 +1,8 @@
 * x Lexer
 * x Parser
+* x String concatenation
 * Parser unit tests
   * x Parse errors
-  * String concatenation
   * x Clean up
 * x Clean up parser
 * . Error classes should have optional message

@@ -27,11 +27,17 @@ export enum LexerErrorCode {
   UNKNOWN_ESCAPE_SEQUENCE,
 }
 
+const lexerErrorStrings = [
+  'Expected closing brace (}).',
+  'Incomplete escape sequence.',
+  'Unknown escape sequence.',
+];
+
 export class LexerError extends Error {
   code: LexerErrorCode;
 
-  constructor(code: LexerErrorCode, message: string) {
-    super(message);
+  constructor(code: LexerErrorCode, message?: string) {
+    super(message || lexerErrorStrings[code]);
     this.code = code;
   }
 }
@@ -101,10 +107,7 @@ export class Lexer {
         }
       }
     }
-    throw new LexerError(
-      LexerErrorCode.EXPECTED_CLOSING_BRACE,
-      'Expected closing brace (}).'
-    );
+    throw new LexerError(LexerErrorCode.EXPECTED_CLOSING_BRACE);
   }
 
   private skipWhite() {
@@ -146,10 +149,7 @@ export class Lexer {
   private handleEscape(c: string) {
     if (c === '\\') {
       if (this.atEOS()) {
-        throw new LexerError(
-          LexerErrorCode.INCOMPLETE_ESCAPE_SEQUENCE,
-          'Incomplete escape sequence.'
-        );
+        throw new LexerError(LexerErrorCode.INCOMPLETE_ESCAPE_SEQUENCE);
       }
 
       // Get the escaped character.

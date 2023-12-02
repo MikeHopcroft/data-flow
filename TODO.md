@@ -1,11 +1,11 @@
 * x Lexer
 * x Parser
 * Parser unit tests
-  * Parse errors
+  * x Parse errors
   * String concatenation
-  * Clean up
-* Clean up parser
-* Error classes should have optional message
+  * x Clean up
+* x Clean up parser
+* . Error classes should have optional message
 * Topological sort
 * Error value type returned by evaluator?
 * Expression compare

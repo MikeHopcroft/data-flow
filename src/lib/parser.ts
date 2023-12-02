@@ -23,17 +23,29 @@ export function parse(src: string): ConcatenationNode {
 
 export enum ParseErrorCode {
   EXPECTED_COMMA,
-  EXPECTED_DOT_OR_FUNCTION,
   EXPECTED_CLOSING_PAREN,
   EXPECTED_COMMA_OR_CLOSING_PAREN,
+  EXPECTED_DOT_OR_FUNCTION,
+  EXPECTED_EXPRESSION,
+  EXPECTED_IDENTIFIER,
   UNEXPECTED_CHARS_AFTER_EXPRESSION,
 }
+
+const parseErrorStrings = [
+  'Expected comma (,)',
+  'Expected closing paren.',
+  'Expected comma or closing paren',
+  'Expected dot (.) or function.',
+  'Expected expression.',
+  'Expected identifier.',
+  'Unexpected characters after expression',
+];
 
 export class ParseError extends Error {
   code: ParseErrorCode;
 
-  constructor(code: ParseErrorCode, message: string) {
-    super(message);
+  constructor(code: ParseErrorCode, message?: string) {
+    super(message || parseErrorStrings[code]);
     this.code = code;
   }
 }
@@ -46,6 +58,18 @@ export class Parser {
   }
 
   parse(): ExpressionNode {
+    const result = this.parse1();
+    if (!this.cursor.atEOS()) {
+      throw new ParseError(ParseErrorCode.UNEXPECTED_CHARS_AFTER_EXPRESSION);
+    }
+    return result;
+  }
+
+  parse1(): ExpressionNode {
+    if (this.cursor.atEOS()) {
+      throw new ParseError(ParseErrorCode.EXPECTED_EXPRESSION);
+    }
+
     const t = this.peek();
     if (t.type === TokenType.NUMBER) {
       this.get();
@@ -54,31 +78,12 @@ export class Parser {
       this.get();
       const parent = {type: NodeType.IDENTIFIER, name: t.text} as const;
       return this.parse2(parent);
-      // if (this.cursor.atEOS()) {
-      //   return parent;
-      // }
-      // const next = this.peek();
-      // if (next.type === TokenType.DELIMETER) {
-      //   if (next.text === '(') {
-      //     return this.parseFunction(parent);
-      //   } else if (next.text === '.') {
-      //     return this.parseDot(parent);
-      //   }
-      // }
-      // throw new ParseError(
-      //   ParseErrorCode.EXPECTED_DOT_OR_FUNCTION,
-      //   'Expected dot (.) or open parentheses (().'
-      // );
+    } else {
+      throw new ParseError(ParseErrorCode.EXPECTED_EXPRESSION);
     }
-    throw new ParseError(
-      ParseErrorCode.UNEXPECTED_CHARS_AFTER_EXPRESSION,
-      'Unexpected characters after expression'
-    );
   }
 
   parse2(current: ExpressionNode): ExpressionNode {
-    // const t = this.get();
-    // let current = {type: NodeType.IDENTIFIER, name: t.text} as const;
     while (!this.cursor.atEOS()) {
       const next = this.peek();
       if (next.type === TokenType.DELIMETER) {
@@ -91,7 +96,7 @@ export class Parser {
           break;
         }
       } else {
-        throw 1;
+        throw new ParseError(ParseErrorCode.UNEXPECTED_CHARS_AFTER_EXPRESSION);
       }
     }
     return current;
@@ -101,11 +106,11 @@ export class Parser {
     // Take the dot.
     this.get();
     if (this.cursor.atEOS()) {
-      throw 1;
+      throw new ParseError(ParseErrorCode.EXPECTED_IDENTIFIER);
     }
     const t = this.get();
     if (t.type !== TokenType.WORD) {
-      throw 2;
+      throw new ParseError(ParseErrorCode.EXPECTED_IDENTIFIER);
     }
     const child = {type: NodeType.IDENTIFIER, name: t.text} as const;
     return {type: NodeType.DOT, parent, child};
@@ -120,31 +125,25 @@ export class Parser {
     if (!this.cursor.atEOS()) {
       const t1 = this.peek();
       if (t1.type !== TokenType.DELIMETER || t1.text !== ')') {
-        params.push(this.parse());
+        params.push(this.parse1());
 
         while (!this.cursor.atEOS()) {
           if (this.nextIs(')')) {
             break;
           }
           if (!this.nextIs(',')) {
-            throw new ParseError(
-              ParseErrorCode.EXPECTED_COMMA,
-              'Expected comma (,).'
-            );
+            throw new ParseError(ParseErrorCode.EXPECTED_COMMA);
           }
           // Take the comma.
           this.get();
 
           // Parse the next parameter.
-          params.push(this.parse());
+          params.push(this.parse1());
         }
       }
     }
     if (!this.nextIs(')')) {
-      throw new ParseError(
-        ParseErrorCode.EXPECTED_CLOSING_PAREN,
-        'Expected closing paren ")".'
-      );
+      throw new ParseError(ParseErrorCode.EXPECTED_CLOSING_PAREN);
     }
     // Take the closing paren.
     this.get();
@@ -159,17 +158,6 @@ export class Parser {
     return this.cursor.peek();
   }
 
-  // skipDelimiter(char: string): boolean {
-  //   if (!this.cursor.atEOS()) {
-  //     const t = this.cursor.peek();
-  //     if (t.type === TokenType.DELIMETER && t.text === char) {
-  //       this.get();
-  //       return true;
-  //     }
-  //   }
-  //   return false;
-  // }
-
   nextIs(char: string): boolean {
     if (this.cursor.atEOS()) {
       return false;
@@ -177,8 +165,4 @@ export class Parser {
     const t = this.peek();
     return t.type === TokenType.DELIMETER && t.text === char;
   }
-}
-
-function delimiter(text: string): Token {
-  return {type: TokenType.DELIMETER, text};
 }

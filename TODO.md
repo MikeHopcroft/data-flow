@@ -2,7 +2,7 @@
   * evaluatePlan should not do all steps at once.
   * async calls with context update
 * Command line demo tool
-* Expression compare
+* Compare function
   * spanning tree
 * Error value type returned by evaluator?
 * LICENSE

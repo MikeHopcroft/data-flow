@@ -301,7 +301,86 @@ This decision could also be made during `Plan` execution if we extended the lang
 
 ## Support for Language Services
 
-## Alternative Implementation
+## Alternative Approach
+This section describes an alternative approach that has some characteristics beneficial to Data Science. 
+
+This approach is a hybrid, combining a serialization format like YAML of JSON with JavaScript expressions for some values.
+
+Here the elements of the `Plan2` data structure are analogous to nodes the parse tree of the JavaScript `Plan`.
+
+The main differences are
+1. `Plan2` embraces the convention that `AsynFunctions`, which it calls `Domains`, take a single parameter which is a property bag of named `Slots`. Each `Slot` is an array of `TemplateLiterals` that can include Javscript expressions involving identifiers in the evaluation context.
+2. Alias definitions are expressed as key-value pairs of the root object.
+3. A special `result` alias indicates the return value of the `Plan2`.
+4. Async function invocations are expressed as an object where each key-value pair specifies an `AsyncFunction` (or `Domain`) and its single parameter. (e.g. {flightInfo: {airline: "United" flight: 123}}). Evaluation of this object (known as a `DomainSet`) is a new object with the same keys bound to the results of their corresponding `Domain` invocations.
+5. Other expressions are provided by template literal syntax inside of string literal values. (e.g. ${next(Tuesday)})
+
+Here's an example `Plan2`:
+~~~yaml
+alias1:
+  domain1:
+    slot1:
+      -value1
+      -value2
+    slot2:
+      -value3
+  domain2:
+    slot3:
+      -value4
+result: hello, world ${alias1.domain1.fieldX} and ${domain2.fieldY}
+~~~
+
+Here is the type system:
+~~~typescript
+type Plan2 = Record<Alias, DomainSet | TemplateLiteral>;
+
+type Alias = string;
+type TemplateLiteral = string;
+
+type DomainSet = Record<DomainName, DomainSlots>
+type DomainName = string;
+
+type DomainSlots = Record<SlotName, SlotValue>
+type SlotName = string;
+type SlotValue = TemplateLiteral[];
+~~~
+
+`TemplateLiterals` differ from those in JavaScript in that they aren't surrounded by backticks (\`). Any string typed as `TemplateLiteral` in the above definition will be evaluated as if it were a back-ticked JavaScript template literal, where expressions are marked by ${expression}, and evaluated according to the `EXPRESSION` production in the grammer for the original `Plan`.
+
+`TemplateLiterals` also differ from those in JavaScript in that they can, in certain cases, generate types other than strings. If the template literal contains only an expression, with no text before or after the expression, the result will be the actual value of the expression and not its string representation, so `"${1}"` will return the number 1, while `" ${1}"` will return the string `" 1"`.
+
+### Example
+For instance, a `Plan` like
+~~~yaml
+a:
+  domainA:
+    slot1: foo
+  domainB:
+    slot2: bar
+result:
+  domainC:
+    slot3: ${a.domainA.field1}
+    slot4: ${a.domainB[0].field2}
+~~~
+
+might result in the execution of the following code:
+
+~~~typescript
+async function plan(context: ExampleContext1) {
+  const promises = [
+    context.domainA({slot1: 'foo'}),
+    context.domainB({slot2: 'bar'}),
+  ] as const;
+  const [a, b] = await Promise.all(promises);
+  return context.domainC({slot3: a.field1, slot4: b[0].field2});
+}
+~~~
+
+### Discussion
+
+* Top-level alias-domain-slot hierarchy is amenable to anaysis by data scientists using off the shelf tools like a YAML parser.
+* Because object literals bound to aliases define the semantics of `Domain` invocation, one must use template literal expressions to specify object literals that are not `Domain` invocations. This is why the template literal evaluator provides a mechanism for returning non-string values.
+* A consequence of supporting template literals is that implementing an interpreter for `Plan2` involves implementing most of the parser and interpreter for `Plan`.
 
 ---
 

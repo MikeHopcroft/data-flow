@@ -17,13 +17,13 @@ import {
   Value,
 } from '../../src/lib2';
 
-const globalContext = {
+const contextValues = {
   x: 456,
   y: {z: 789},
   a: ['one', 'two', 'three'],
   f: (a: number, b: number) => a + b,
 };
-const context = new Context(globalContext, {});
+const context = new Context(contextValues, {});
 
 const position: TokenPosition = {
   index: 0,
@@ -32,6 +32,19 @@ const position: TokenPosition = {
   rowEnd: 0,
   columnEnd: 0,
 };
+
+class MockASTNode implements ASTNode<number> {
+  position: TokenPosition;
+  evalCount = 0;
+
+  constructor(position: TokenPosition) {
+    this.position = position;
+  }
+
+  eval(): Promise<number> {
+    return Promise.resolve(++this.evalCount);
+  }
+}
 
 describe('ASTNode', () => {
   describe('Basic expressions', () => {
@@ -83,7 +96,7 @@ describe('ASTNode', () => {
       {
         name: 'identifier',
         input: new ASTReference('x', position),
-        expected: globalContext.x,
+        expected: contextValues.x,
       },
       {
         name: 'dot',
@@ -245,6 +258,24 @@ describe('ASTNode', () => {
         }
       });
     }
+  });
+
+  it('Memoization', async () => {
+    const context2 = new Context(
+      {},
+      {
+        f: new MockASTNode(position),
+      }
+    );
+
+    const root = new ASTTuple(
+      [new ASTReference('f', position), new ASTReference('f', position)],
+      position
+    );
+
+    const observed = await root.eval(context2);
+    const expected = [1, 1];
+    assert.deepEqual(observed, expected);
   });
 
   // describe('String interpolation', () => {

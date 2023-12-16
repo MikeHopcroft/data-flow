@@ -7,6 +7,10 @@ type MapAST<T extends readonly unknown[] | [] | Record<keyof T, unknown>> = {
   -readonly [P in keyof T]: ASTNode<T[P]>;
 };
 
+type MapAST2<T extends Record<string, unknown>> = {
+  [X in keyof T]: ASTNode<T[X]>;
+};
+
 export enum RuntimeErrorCode {
   ILLEGAL_IDENTIFIER,
   INACCESSIBLE_PROPERTY,
@@ -78,30 +82,6 @@ export class ASTTuple<P extends unknown[]> implements ASTNode<P> {
   }
 }
 
-// function test<S, T extends {[key: keyof T]: S}>(context: T, name: keyof T) {
-//   return context[name];
-// }
-
-// type MapAST2<T extends Record<keyof T, any>> = {
-//   -readonly [X in keyof T]: ASTNode<T[X]>;
-// };
-// type MapAST2<T extends Record<keyof T, any>> = {
-//   [X in keyof T]: ASTNode<T[X]>;
-// };
-type MapAST2<T extends Record<string, any>> = {
-  [X in keyof T]: ASTNode<T[X]>;
-};
-
-// function test<S, T extends Record<keyof T, S>>(context: T, name: keyof T) {
-//   return context[name];
-// }
-function test<T extends Record<keyof T, any>>(
-  context: Record<keyof T, any>,
-  name: keyof T
-) {
-  return context[name];
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 //
 // ASTObject
@@ -119,21 +99,14 @@ export class ASTObject<X extends Record<keyof X, unknown>>
   }
 
   async eval(context: IEvaluationContext): Promise<X> {
-    const promises: Promise<any>[] = [];
+    const promises: Promise<unknown>[] = [];
     for (const key of Object.getOwnPropertyNames(this.value)) {
-      // const v = this.value[key as keyof MapAST2<X>];
-      // const v2 = test(this.value, key as keyof X);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const value = saferGet(this.value, key as keyof X) as any;
-      // const x = value!.eval(context);
-      // if (value === undefined) {
-      //   throw 123;
-      // }
       promises.push(value.eval(context));
-      // promises.push(value!.eval(context));
-      // promises.push(v2!.eval(context));
     }
     const values = await Promise.all(promises);
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     let index = 0;
     for (const key of Object.getOwnPropertyNames(this.value)) {
       result[key] = values[index];
@@ -158,11 +131,9 @@ export class ASTReference implements ASTNode<unknown> {
   }
 
   async eval(context: IEvaluationContext) {
-    const {value, node} = context.get(this.name);
-    if (node) {
-      return await node.eval(context);
-    } else if (value !== undefined) {
-      return value;
+    const result = context.eval(this.name);
+    if (result !== undefined) {
+      return result.value;
     }
     throw new RuntimeError(
       RuntimeErrorCode.UNKNOWN_IDENTIFIER,

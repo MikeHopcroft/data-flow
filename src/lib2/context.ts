@@ -4,6 +4,7 @@ import {ASTNode, IEvaluationContext} from './interfaces';
 export class Context implements IEvaluationContext {
   values: Record<string, unknown>;
   nodes: Record<string, ASTNode<unknown>>;
+  cache = new Map<ASTNode<unknown>, unknown>();
 
   constructor(
     values: Record<string, unknown>,
@@ -13,8 +14,28 @@ export class Context implements IEvaluationContext {
     this.nodes = nodes;
   }
 
-  get(name: string) {
-    const node = saferGet(this.nodes, name);
+  eval(name: string): {value: unknown} | undefined {
+    const node = saferGet(this.nodes, name) as ASTNode<unknown>;
+    if (node) {
+      if (this.cache.has(node)) {
+        return {value: this.cache.get(node)};
+      } else {
+        const value = node.eval(this);
+        this.cache.set(node, value);
+        return {value};
+      }
+    }
+
+    const value = saferGet(this.values, name);
+    if (value) {
+      return {value};
+    }
+
+    return undefined;
+  }
+
+  get(name: string): {value?: unknown; node?: ASTNode<unknown>} {
+    const node = saferGet(this.nodes, name) as ASTNode<unknown>;
     if (node) {
       return {node};
     }
@@ -31,72 +52,6 @@ export class Context implements IEvaluationContext {
 // The goal here is to reduce opportunities for  injection attacks to access
 // properties other than those intended. This includes fields like __proto__
 // and toString.
-// export function saferGet<T>(
-//   context: Record<keyof T, T>,
-//   name: string
-// ): T | undefined {
-//   if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name)) {
-//     throw new RuntimeError(
-//       RuntimeErrorCode.ILLEGAL_IDENTIFIER,
-//       // EvaluationErrorCode.UNSAFE_PROPERTY,
-//       `Illegal property name "${name}".`
-//     );
-//   }
-
-//   if (name in {}) {
-//     throw new RuntimeError(
-//       RuntimeErrorCode.INACCESSIBLE_PROPERTY,
-//       // EvaluationErrorCode.UNSAFE_PROPERTY,
-//       `Inaccessible property name "${name}".`
-//     );
-//   }
-
-//   if (name in context) {
-//     if (!Object.hasOwn(context, name)) {
-//       throw new RuntimeError(
-//         RuntimeErrorCode.INACCESSIBLE_PROPERTY,
-//         // EvaluationErrorCode.UNSAFE_PROPERTY,
-//         `Inaccessible property name "${name}".`
-//       );
-//     }
-//     return context[name];
-//   }
-//   return undefined;
-// }
-
-// export function saferGet<S, T extends Record<keyof T, S>>(
-//   context: Record<keyof T, S>,
-//   name: keyof T
-// ): S | undefined {
-//   if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name as string)) {
-//     throw new RuntimeError(
-//       RuntimeErrorCode.ILLEGAL_IDENTIFIER,
-//       // EvaluationErrorCode.UNSAFE_PROPERTY,
-//       `Illegal property name "${name as string}".`
-//     );
-//   }
-
-//   if (name in {}) {
-//     throw new RuntimeError(
-//       RuntimeErrorCode.INACCESSIBLE_PROPERTY,
-//       // EvaluationErrorCode.UNSAFE_PROPERTY,
-//       `Inaccessible property name "${name as string}".`
-//     );
-//   }
-
-//   if (name in context) {
-//     if (!Object.hasOwn(context, name)) {
-//       throw new RuntimeError(
-//         RuntimeErrorCode.INACCESSIBLE_PROPERTY,
-//         // EvaluationErrorCode.UNSAFE_PROPERTY,
-//         `Inaccessible property name "${name as string}".`
-//       );
-//     }
-//     return context[name];
-//   }
-//   return undefined;
-// }
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function saferGet<T extends Record<keyof T, any>>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -1,14 +1,14 @@
-* Structured error handling
+* x Memoizing
+  * x Are nodes memoized in place inside of ASTNodes?
+  * x Can the same node be evaluated in two different Contexts?
+  * x Can the symbol be memoized in the symbol table?
+* Check for cycles
+* x Structured error handling
 * Literals
   * undefined
   * null
-* Arrays
-* Objects
-* Check for cycles
-* Memoizing
-  * Are nodes memoized in place inside of ASTNodes?
-  * Can the same node be evaluated in two different Contexts?
-  * Can the symbol be memoized in the symbol table?
+* x Arrays
+* x Objects
 * IEvaluationContext.get() should do SafePropertyGet
 * ObjectContext
 * Difference between Context and SymbolTable

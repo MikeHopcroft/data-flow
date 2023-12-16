@@ -212,13 +212,18 @@ describe('ASTNode', () => {
         expected: RuntimeErrorCode.UNKNOWN_IDENTIFIER,
       },
       {
-        name: 'illegal identifier',
+        name: 'get illegal identifier',
         input: new ASTReference('_a', position),
         expected: RuntimeErrorCode.ILLEGAL_IDENTIFIER,
       },
       {
-        name: 'inaccessible property',
+        name: 'get inaccessible property',
         input: new ASTReference('toString', position),
+        expected: RuntimeErrorCode.INACCESSIBLE_PROPERTY,
+      },
+      {
+        name: 'set inaccessible property',
+        input: new ASTObject({toString: new ASTLiteral(1, position)}, position),
         expected: RuntimeErrorCode.INACCESSIBLE_PROPERTY,
       },
     ];

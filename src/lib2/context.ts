@@ -63,14 +63,49 @@ export class Context implements IEvaluationContext {
 //   }
 //   return undefined;
 // }
-export function saferGet<S, T extends Record<keyof T, S>>(
-  context: Record<keyof T, S>,
+
+// export function saferGet<S, T extends Record<keyof T, S>>(
+//   context: Record<keyof T, S>,
+//   name: keyof T
+// ): S | undefined {
+//   if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name as string)) {
+//     throw new RuntimeError(
+//       RuntimeErrorCode.ILLEGAL_IDENTIFIER,
+//       // EvaluationErrorCode.UNSAFE_PROPERTY,
+//       `Illegal property name "${name as string}".`
+//     );
+//   }
+
+//   if (name in {}) {
+//     throw new RuntimeError(
+//       RuntimeErrorCode.INACCESSIBLE_PROPERTY,
+//       // EvaluationErrorCode.UNSAFE_PROPERTY,
+//       `Inaccessible property name "${name as string}".`
+//     );
+//   }
+
+//   if (name in context) {
+//     if (!Object.hasOwn(context, name)) {
+//       throw new RuntimeError(
+//         RuntimeErrorCode.INACCESSIBLE_PROPERTY,
+//         // EvaluationErrorCode.UNSAFE_PROPERTY,
+//         `Inaccessible property name "${name as string}".`
+//       );
+//     }
+//     return context[name];
+//   }
+//   return undefined;
+// }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function saferGet<T extends Record<keyof T, any>>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  context: Record<keyof T, any>,
   name: keyof T
-): S | undefined {
+) {
   if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name as string)) {
     throw new RuntimeError(
       RuntimeErrorCode.ILLEGAL_IDENTIFIER,
-      // EvaluationErrorCode.UNSAFE_PROPERTY,
       `Illegal property name "${name as string}".`
     );
   }
@@ -78,7 +113,6 @@ export function saferGet<S, T extends Record<keyof T, S>>(
   if (name in {}) {
     throw new RuntimeError(
       RuntimeErrorCode.INACCESSIBLE_PROPERTY,
-      // EvaluationErrorCode.UNSAFE_PROPERTY,
       `Inaccessible property name "${name as string}".`
     );
   }
@@ -87,7 +121,6 @@ export function saferGet<S, T extends Record<keyof T, S>>(
     if (!Object.hasOwn(context, name)) {
       throw new RuntimeError(
         RuntimeErrorCode.INACCESSIBLE_PROPERTY,
-        // EvaluationErrorCode.UNSAFE_PROPERTY,
         `Inaccessible property name "${name as string}".`
       );
     }

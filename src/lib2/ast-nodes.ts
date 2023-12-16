@@ -7,10 +7,6 @@ type MapAST<T extends readonly unknown[] | [] | Record<keyof T, unknown>> = {
   -readonly [P in keyof T]: ASTNode<T[P]>;
 };
 
-type MapAST2<T extends Record<keyof T, unknown>> = {
-  -readonly [P in keyof T]: ASTNode<T[P]>;
-};
-
 export enum RuntimeErrorCode {
   ILLEGAL_IDENTIFIER,
   INACCESSIBLE_PROPERTY,
@@ -82,38 +78,68 @@ export class ASTTuple<P extends unknown[]> implements ASTNode<P> {
   }
 }
 
+// function test<S, T extends {[key: keyof T]: S}>(context: T, name: keyof T) {
+//   return context[name];
+// }
+
+// type MapAST2<T extends Record<keyof T, any>> = {
+//   -readonly [X in keyof T]: ASTNode<T[X]>;
+// };
+// type MapAST2<T extends Record<keyof T, any>> = {
+//   [X in keyof T]: ASTNode<T[X]>;
+// };
+type MapAST2<T extends Record<string, any>> = {
+  [X in keyof T]: ASTNode<T[X]>;
+};
+
+// function test<S, T extends Record<keyof T, S>>(context: T, name: keyof T) {
+//   return context[name];
+// }
+function test<T extends Record<keyof T, any>>(
+  context: Record<keyof T, any>,
+  name: keyof T
+) {
+  return context[name];
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // ASTObject
 //
 ///////////////////////////////////////////////////////////////////////////////
-export class ASTObject<Q extends Record<string, unknown>>
-  implements ASTNode<Q>
+export class ASTObject<X extends Record<keyof X, unknown>>
+  implements ASTNode<X>
 {
-  value: MapAST2<Q>;
+  value: MapAST2<X>;
   position: TokenPosition;
 
-  constructor(value: MapAST2<Q>, position: TokenPosition) {
+  constructor(value: MapAST2<X>, position: TokenPosition) {
     this.value = value;
     this.position = position;
   }
 
-  async eval(context: IEvaluationContext): Promise<Q> {
-    const promises: Promise<unknown>[] = [];
-    // TODO: use safe properties here.
+  async eval(context: IEvaluationContext): Promise<X> {
+    const promises: Promise<any>[] = [];
     for (const key of Object.getOwnPropertyNames(this.value)) {
-      // const value = saferGet(this.value, key);
-      promises.push(this.value[key].eval(context));
+      // const v = this.value[key as keyof MapAST2<X>];
+      // const v2 = test(this.value, key as keyof X);
+      const value = saferGet(this.value, key as keyof X) as any;
+      // const x = value!.eval(context);
+      // if (value === undefined) {
+      //   throw 123;
+      // }
+      promises.push(value.eval(context));
+      // promises.push(value!.eval(context));
+      // promises.push(v2!.eval(context));
     }
     const values = await Promise.all(promises);
-    const result: Record<string, unknown> = {};
+    const result: Record<string, any> = {};
     let index = 0;
-    // TODO: use safe properties here.
     for (const key of Object.getOwnPropertyNames(this.value)) {
       result[key] = values[index];
       ++index;
     }
-    return result as P;
+    return result as X;
   }
 }
 

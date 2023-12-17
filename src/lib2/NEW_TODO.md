@@ -1,8 +1,20 @@
-* Unit test tokenizer errors
-  * Bad identifer name
+* Check for cycles
+* Literals
+  * object
+  * undefined
+  * null
+* Operators
+  * x dot
+  * []
+* lodash deep compare of objects
+* Structure
+  * vardecs
+  * return
+  * use
 * Tokenizer
   * Scientific notation for numbers
-  * Escaped quotes in strings
+  * x Escaped quotes in strings
+  * Other escape codes in strings
   * Unefined and null
   * Resuse RE from safe getter
   * // comments
@@ -11,18 +23,20 @@
     * No expression
     * One expression
     * Multiple expressions
+* Compare
+  * resolve() - looks up and replaces aliases
+  * compare() - distance metric for two AST trees
+  * analyze() - information about functions and slots
 * x Memoizing
   * x Are nodes memoized in place inside of ASTNodes?
   * x Can the same node be evaluated in two different Contexts?
   * x Can the symbol be memoized in the symbol table?
-* Check for cycles
 * x Structured error handling
-* Literals
-  * undefined
-  * null
 * x Arrays
 * x Objects
-* IEvaluationContext.get() should do SafePropertyGet
+* x Unit test tokenizer errors
+  * x Bad identifer name
+* x IEvaluationContext.get() should do SafePropertyGet
 * ObjectContext
 * Difference between Context and SymbolTable
   * Symbol table maps reference nodes identifiers to ASTNodes

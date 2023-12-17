@@ -12,9 +12,11 @@ describe('Lexer', () => {
     }[] = [
       {
         name: 'primitives',
-        input: '  1 true false id',
+        input: '  +1.23 -456 789 true false id',
         expected: [
-          {kind: TokenKind.Number, text: '1'},
+          {kind: TokenKind.Number, text: '+1.23'},
+          {kind: TokenKind.Number, text: '-456'},
+          {kind: TokenKind.Number, text: '789'},
           {kind: TokenKind.Boolean, text: 'true'},
           {kind: TokenKind.Boolean, text: 'false'},
           {kind: TokenKind.Identifier, text: 'id'},
@@ -42,7 +44,7 @@ describe('Lexer', () => {
       },
       {
         name: 'delimiters',
-        input: '[](),=',
+        input: '[](),=.',
         expected: [
           {kind: TokenKind.LBracket, text: '['},
           {kind: TokenKind.RBracket, text: ']'},
@@ -50,6 +52,7 @@ describe('Lexer', () => {
           {kind: TokenKind.RParen, text: ')'},
           {kind: TokenKind.Comma, text: ','},
           {kind: TokenKind.Equals, text: '='},
+          {kind: TokenKind.Dot, text: '.'},
         ],
       },
     ];

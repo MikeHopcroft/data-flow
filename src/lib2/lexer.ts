@@ -12,6 +12,7 @@ export enum TokenKind {
   LParen,
   RParen,
   Comma,
+  Dot,
   Equals,
   Space,
   Comment,
@@ -20,7 +21,7 @@ export enum TokenKind {
 export function createLexer() {
   const lexer = buildLexer([
     // TODO: handle, e.g. E+09
-    [true, /^-?\d+(\.\d+)?/g, TokenKind.Number],
+    [true, /^[+-]?\d+(\.\d+)?/g, TokenKind.Number],
     // TODO: single quotes, escaped quotes, other escapes
     [true, /^"([^"\\]|\\[\s\S])*"/g, TokenKind.String],
     [true, /^'([^'\\]|\\[\s\S])*'/g, TokenKind.String],
@@ -35,6 +36,7 @@ export function createLexer() {
     [true, /^\(/g, TokenKind.LParen],
     [true, /^\)/g, TokenKind.RParen],
     [true, /^,/g, TokenKind.Comma],
+    [true, /^\./g, TokenKind.Dot],
     [true, /^=/g, TokenKind.Equals],
     // TODO: /* */ comments, when not inside strings
     [false, /^\/\/[^\n]*/g, TokenKind.Comment],

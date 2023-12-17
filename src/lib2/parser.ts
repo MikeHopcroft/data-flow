@@ -26,40 +26,6 @@
 
 // import {ASTNode} from './interfaces';
 
-// enum TokenKind {
-//   Number,
-//   String,
-//   Boolean,
-//   Use,
-//   Return,
-//   Identifier,
-//   LBracket,
-//   RBracket,
-//   LParen,
-//   RParen,
-//   Comma,
-//   Equals,
-//   Space,
-//   Comment,
-// }
-
-// const lexer = buildLexer([
-//   [true, /^-?\d+(\.\d+)?/g, TokenKind.Number],
-//   [true, /^"[^"]*"/g, TokenKind.String],
-//   [true, /^(true|false)/g, TokenKind.Boolean],
-//   [true, /^use/g, TokenKind.Use],
-//   [true, /^return/g, TokenKind.Return],
-//   [true, /^[a-zA-Z_]+[a-zA-Z_0-9]*/g, TokenKind.Identifier],
-//   [true, /^\[/g, TokenKind.LBracket],
-//   [true, /^\]/g, TokenKind.RBracket],
-//   [true, /^\(/g, TokenKind.LParen],
-//   [true, /^\)/g, TokenKind.RParen],
-//   [true, /^,/g, TokenKind.Comma],
-//   [true, /^=/g, TokenKind.Equals],
-//   [false, /^\/\/[^\n]*/g, TokenKind.Comment],
-//   [false, /^\s+/g, TokenKind.Space],
-// ]);
-
 // // VARDEC = Identifier Equals EXPR
 // //
 // // LIST = EXPR [, EXPR]*

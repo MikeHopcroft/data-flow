@@ -1,3 +1,16 @@
+* Unit test tokenizer errors
+  * Bad identifer name
+* Tokenizer
+  * Scientific notation for numbers
+  * Escaped quotes in strings
+  * Unefined and null
+  * Resuse RE from safe getter
+  * // comments
+  * /* */ comments
+  * String interpolation parts
+    * No expression
+    * One expression
+    * Multiple expressions
 * x Memoizing
   * x Are nodes memoized in place inside of ASTNodes?
   * x Can the same node be evaluated in two different Contexts?

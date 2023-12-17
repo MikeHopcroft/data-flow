@@ -12,8 +12,8 @@ import {
   ASTReference,
   ASTTuple,
   Context,
-  RuntimeError,
-  RuntimeErrorCode,
+  ErrorCode,
+  ErrorEx,
   Value,
 } from '../../src/lib2';
 
@@ -174,7 +174,7 @@ describe('ASTNode', () => {
     const cases: {
       name: string;
       input: ASTNode<unknown>;
-      expected: RuntimeErrorCode;
+      expected: ErrorCode;
     }[] = [
       {
         name: 'leftside of dot must be object',
@@ -183,7 +183,7 @@ describe('ASTNode', () => {
           new ASTReference('x', position),
           position
         ),
-        expected: RuntimeErrorCode.EXPECTED_OBJECT,
+        expected: ErrorCode.EXPECTED_OBJECT,
       },
       {
         name: 'expected array',
@@ -192,7 +192,7 @@ describe('ASTNode', () => {
           new ASTLiteral(1, position),
           position
         ),
-        expected: RuntimeErrorCode.EXPECTED_ARRAY,
+        expected: ErrorCode.EXPECTED_ARRAY,
       },
       {
         name: 'expected array index',
@@ -208,7 +208,7 @@ describe('ASTNode', () => {
           new ASTLiteral('hello', position),
           position
         ),
-        expected: RuntimeErrorCode.EXPECTED_ARRAY_INDEX,
+        expected: ErrorCode.EXPECTED_ARRAY_INDEX,
       },
       {
         name: 'expected function',
@@ -217,27 +217,27 @@ describe('ASTNode', () => {
           [new ASTLiteral(1, position)],
           position
         ),
-        expected: RuntimeErrorCode.EXPECTED_FUNCTION,
+        expected: ErrorCode.EXPECTED_FUNCTION,
       },
       {
         name: 'unknown identifier',
         input: new ASTReference('unknown', position),
-        expected: RuntimeErrorCode.UNKNOWN_IDENTIFIER,
+        expected: ErrorCode.UNKNOWN_IDENTIFIER,
       },
       {
         name: 'get illegal identifier',
         input: new ASTReference('_a', position),
-        expected: RuntimeErrorCode.ILLEGAL_IDENTIFIER,
+        expected: ErrorCode.ILLEGAL_IDENTIFIER,
       },
       {
         name: 'get inaccessible property',
         input: new ASTReference('toString', position),
-        expected: RuntimeErrorCode.INACCESSIBLE_PROPERTY,
+        expected: ErrorCode.INACCESSIBLE_PROPERTY,
       },
       {
         name: 'set inaccessible property',
         input: new ASTObject({toString: new ASTLiteral(1, position)}, position),
-        expected: RuntimeErrorCode.INACCESSIBLE_PROPERTY,
+        expected: ErrorCode.INACCESSIBLE_PROPERTY,
       },
     ];
 
@@ -247,7 +247,7 @@ describe('ASTNode', () => {
         try {
           await input.eval(context);
         } catch (e) {
-          if (e instanceof RuntimeError) {
+          if (e instanceof ErrorEx) {
             ok = true;
             assert.equal(e.code, expected);
           } else {

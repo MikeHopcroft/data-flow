@@ -22,8 +22,8 @@ export function createLexer() {
     // TODO: handle, e.g. E+09
     [true, /^-?\d+(\.\d+)?/g, TokenKind.Number],
     // TODO: single quotes, escaped quotes, other escapes
-    [true, /^"[^"]*"/g, TokenKind.String],
-    [true, /^'[^']*'/g, TokenKind.String],
+    [true, /^"([^"\\]|\\[\s\S])*"/g, TokenKind.String],
+    [true, /^'([^'\\]|\\[\s\S])*'/g, TokenKind.String],
     [true, /^(true|false)/g, TokenKind.Boolean],
     // TODO: undefined and null
     [true, /^use/g, TokenKind.Use],

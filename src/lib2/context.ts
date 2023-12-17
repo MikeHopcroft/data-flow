@@ -1,4 +1,4 @@
-import {RuntimeError, RuntimeErrorCode} from './ast-nodes';
+import {ErrorCode, ErrorEx} from './errors';
 import {ASTNode, IEvaluationContext} from './interfaces';
 
 export class Context implements IEvaluationContext {
@@ -59,23 +59,23 @@ export function saferGet<T extends Record<keyof T, any>>(
   name: keyof T
 ) {
   if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name as string)) {
-    throw new RuntimeError(
-      RuntimeErrorCode.ILLEGAL_IDENTIFIER,
+    throw new ErrorEx(
+      ErrorCode.ILLEGAL_IDENTIFIER,
       `Illegal property name "${name as string}".`
     );
   }
 
   if (name in {}) {
-    throw new RuntimeError(
-      RuntimeErrorCode.INACCESSIBLE_PROPERTY,
+    throw new ErrorEx(
+      ErrorCode.INACCESSIBLE_PROPERTY,
       `Inaccessible property name "${name as string}".`
     );
   }
 
   if (name in context) {
     if (!Object.hasOwn(context, name)) {
-      throw new RuntimeError(
-        RuntimeErrorCode.INACCESSIBLE_PROPERTY,
+      throw new ErrorEx(
+        ErrorCode.INACCESSIBLE_PROPERTY,
         `Inaccessible property name "${name as string}".`
       );
     }

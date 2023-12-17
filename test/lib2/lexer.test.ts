@@ -3,8 +3,8 @@ import 'mocha';
 
 import {TokenKind, createLexer} from '../../src/lib2';
 
-describe('lexer', () => {
-  describe('general', () => {
+describe('Lexer', () => {
+  describe('Valid tokenizations', () => {
     const cases: {
       name: string;
       input: string;
@@ -22,20 +22,26 @@ describe('lexer', () => {
       },
       {
         name: 'double quote string literal',
-        input: '  " hi there 1 true [](),=\' "  ',
+        input: '  " hi there \\" \\n 1 true [](),=\' "  ',
         expected: [
-          {kind: TokenKind.String, text: '" hi there 1 true [](),=\' "'},
+          {
+            kind: TokenKind.String,
+            text: '" hi there \\" \\n 1 true [](),=\' "',
+          },
         ],
       },
       {
         name: 'single quote string literal',
-        input: "  ' hi there 1 true [](),=\" '  ",
+        input: "  ' hi there \\' \\n 1 true [](),=\" '  ",
         expected: [
-          {kind: TokenKind.String, text: "' hi there 1 true [](),=\" '"},
+          {
+            kind: TokenKind.String,
+            text: "' hi there \\' \\n 1 true [](),=\" '",
+          },
         ],
       },
       {
-        name: 'delimers',
+        name: 'delimiters',
         input: '[](),=',
         expected: [
           {kind: TokenKind.LBracket, text: '['},
@@ -50,9 +56,9 @@ describe('lexer', () => {
 
     const lexer = createLexer();
 
-    for (const c of cases) {
-      it(c.name, () => {
-        const tokens = lexer.parse(c.input);
+    for (const {name, input, expected} of cases) {
+      it(name, () => {
+        const tokens = lexer.parse(input);
         const observed: {kind: TokenKind; text: string}[] = [];
         let current = tokens;
         while (current !== undefined) {
@@ -60,7 +66,66 @@ describe('lexer', () => {
           observed.push({kind, text});
           current = current.next;
         }
-        assert.deepEqual(observed, c.expected);
+        assert.deepEqual(observed, expected);
+      });
+    }
+  });
+
+  describe('Lexical Errors', () => {
+    const cases: {
+      name: string;
+      input: string;
+      expected: string;
+    }[] = [
+      {
+        name: 'bad number',
+        input: '-a',
+        expected: '-a',
+      },
+      {
+        name: 'bad identifier',
+        input: 'a$b',
+        expected: '$b',
+      },
+      {
+        name: 'bad double quote string',
+        input: '"hello',
+        expected: '"hello',
+      },
+      {
+        name: 'bad single quote string',
+        input: "'hello",
+        expected: "'hello",
+      },
+    ];
+
+    const lexer = createLexer();
+
+    for (const {name, input, expected} of cases) {
+      it(name, () => {
+        let ok = false;
+        try {
+          const tokens = lexer.parse(input);
+          const observed: {kind: TokenKind; text: string}[] = [];
+          let current = tokens;
+          while (current !== undefined) {
+            const {kind, text} = current;
+            observed.push({kind, text});
+            current = current.next;
+          }
+        } catch (e: any) {
+          ok = true;
+          if ('errorMessage' in e) {
+            assert.equal(
+              e.errorMessage,
+              `Unable to tokenize the rest of the input: ${expected}`
+            );
+          } else {
+            throw e;
+          }
+        } finally {
+          assert.isTrue(ok);
+        }
       });
     }
   });

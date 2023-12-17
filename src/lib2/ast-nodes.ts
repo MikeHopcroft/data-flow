@@ -1,6 +1,7 @@
 import {TokenPosition} from 'typescript-parsec';
 
 import {Context, saferGet} from './context';
+import {ErrorCode, ErrorEx} from './errors';
 import {ASTNode, IEvaluationContext} from './interfaces';
 
 type MapAST<T extends readonly unknown[] | [] | Record<keyof T, unknown>> = {
@@ -10,35 +11,6 @@ type MapAST<T extends readonly unknown[] | [] | Record<keyof T, unknown>> = {
 type MapAST2<T extends Record<string, unknown>> = {
   [X in keyof T]: ASTNode<T[X]>;
 };
-
-export enum RuntimeErrorCode {
-  ILLEGAL_IDENTIFIER,
-  INACCESSIBLE_PROPERTY,
-  EXPECTED_ARRAY,
-  EXPECTED_ARRAY_INDEX,
-  EXPECTED_FUNCTION,
-  EXPECTED_OBJECT,
-  UNKNOWN_IDENTIFIER,
-}
-
-const runtimeErrorStrings = [
-  'Illegal identifier',
-  'Inaccessible property',
-  'Expected an array.',
-  'Expected an array index.',
-  'Expected a function.',
-  'Expected an object.',
-  'Unknown identifier.',
-];
-
-export class RuntimeError extends Error {
-  code: RuntimeErrorCode;
-
-  constructor(code: RuntimeErrorCode, message?: string) {
-    super(message || runtimeErrorStrings[code]);
-    this.code = code;
-  }
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -135,8 +107,8 @@ export class ASTReference implements ASTNode<unknown> {
     if (result !== undefined) {
       return result.value;
     }
-    throw new RuntimeError(
-      RuntimeErrorCode.UNKNOWN_IDENTIFIER,
+    throw new ErrorEx(
+      ErrorCode.UNKNOWN_IDENTIFIER,
       `Unknown identifier "${this.name}".`
     );
   }
@@ -171,7 +143,7 @@ export class ASTFunction<P extends unknown[]> implements ASTNode<unknown> {
     const [f, ...params] = await Promise.all(promises);
 
     if (typeof f !== 'function') {
-      throw new RuntimeError(RuntimeErrorCode.EXPECTED_FUNCTION);
+      throw new ErrorEx(ErrorCode.EXPECTED_FUNCTION);
     }
 
     return f(...params);
@@ -205,8 +177,8 @@ export class ASTDot implements ASTNode<unknown> {
       parent instanceof Array ||
       parent === null
     ) {
-      throw new RuntimeError(
-        RuntimeErrorCode.EXPECTED_OBJECT,
+      throw new ErrorEx(
+        ErrorCode.EXPECTED_OBJECT,
         'Left side of dot expression should be object.'
       );
     }
@@ -240,14 +212,11 @@ export class ASTIndex implements ASTNode<unknown> {
       this.index.eval(context),
     ]);
     if (!(array instanceof Array)) {
-      throw new RuntimeError(
-        RuntimeErrorCode.EXPECTED_ARRAY,
-        'Expected array.'
-      );
+      throw new ErrorEx(ErrorCode.EXPECTED_ARRAY, 'Expected array.');
     }
     if (typeof index !== 'number') {
-      throw new RuntimeError(
-        RuntimeErrorCode.EXPECTED_ARRAY_INDEX,
+      throw new ErrorEx(
+        ErrorCode.EXPECTED_ARRAY_INDEX,
         'Array index must be number.'
       );
     }

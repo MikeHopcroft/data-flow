@@ -1,4 +1,5 @@
-* Safe property set in object literal
+* Safe property set and duplicate key check in OBJECT literal, PROGRAM
+* Optional semicolons after ALIAS_DEC, RETURN, USE
 * Check for cycles
 * Literals
   * x object
@@ -7,19 +8,21 @@
 * Operators
   * x dot
   * x []
-* lodash deep compare of objects
+* . lodash deep compare of objects - checked with Chai's assert.deepEqual()
 * Structure
   * vardecs
   * return
   * use
+* Runtime type checking
+  * Funtion arity matches parameter list
 * Tokenizer
   * Scientific notation for numbers
-  * x Escaped quotes in strings
+  * /* */ comments
   * Other escape codes in strings
   * Unefined and null
   * Reuse RE from safe getter
+  * x Escaped quotes in strings
   * x // comments
-  * /* */ comments
   * String interpolation parts
     * No expression
     * One expression

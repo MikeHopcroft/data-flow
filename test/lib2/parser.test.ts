@@ -9,6 +9,12 @@ type Group = {name: string; cases: Case[]};
 type Case = {name: string; input: string; expected: any};
 
 describe('Parser2', () => {
+  // it('test', () => {
+  //   const a = new ASTLiteral(1, position);
+  //   const b = new ASTLiteral(1, position);
+  //   assert.deepEqual(a, b);
+  // });
+
   const groups: Group[] = [
     {
       name: 'Primitives',
@@ -30,6 +36,10 @@ describe('Parser2', () => {
           expected: "Hello, \\' world",
         },
         // TODO: other character escape sequences
+
+        //
+        // Tuple literals
+        //
         {name: 'tuple - empty', input: '[]', expected: []},
         {
           name: 'tuple - basic',
@@ -41,7 +51,15 @@ describe('Parser2', () => {
           input: '[123, "hello", true, [false, [1]]]',
           expected: [123, 'hello', true, [false, [1]]],
         },
-        // TODO: object literals
+        {
+          name: 'tuple - complex',
+          input: '[x, "hello", true, [a, [f(1000, 234)]]]',
+          expected: [123, 'hello', true, [{b: {c: 1010}}, [1234]]],
+        },
+
+        //
+        // Object literals
+        //
         {name: 'object - empty', input: '{}', expected: {}},
         {name: 'object - one prop', input: '{a: 1}', expected: {a: 1}},
         {
@@ -53,6 +71,11 @@ describe('Parser2', () => {
           name: 'object - nested',
           input: '{a: 1, b:{c: "hello"}}',
           expected: {a: 1, b: {c: 'hello'}},
+        },
+        {
+          name: 'object - complex',
+          input: '{a: g(5, 6), b:{c: "hello"}}',
+          expected: {a: {a: 5, b: 6}, b: {c: 'hello'}},
         },
       ],
     },
@@ -67,10 +90,13 @@ describe('Parser2', () => {
       name: 'Operators',
       cases: [
         {name: 'function call', input: 'f(1,2)', expected: 3},
+        {name: 'function call - complex', input: 'f(x,f(5, 2))', expected: 130},
         {name: 'dot', input: 'a.b', expected: {c: 1010}},
         {name: 'dot dot', input: 'a.b.c', expected: 1010},
         {name: 'g(1,2).b', input: 'g(1,2).b', expected: 2},
         {name: 'array index', input: 'b[1]', expected: 2},
+        {name: 'array index - complex', input: 'b[f(1,1)]', expected: 3},
+        {name: 'combination1', input: 'f(g(5,6).a,f(5, 2))', expected: 12},
       ],
     },
     {

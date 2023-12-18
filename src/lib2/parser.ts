@@ -26,15 +26,15 @@ import {
 import {ASTNode} from './interfaces';
 import {createLexer, TokenKind} from './lexer';
 
-// VARDEC = Identifier Equals EXPR
+// ALIAS_DEC = Identifier Equals EXPR
 //
-// LIST = EXPR [, EXPR]*
+// LIST = EXPR [Comma EXPR]*
 //
 // TUPLE = LBracket LIST RBracket
 //
-// BINDING = IDENTIFIER ':' EXRP
-// BINDING_LIST = BINDING [',' BINDING]*
-// OBJECT = '{' BINDING_LIST? '}'
+// BINDING = IDENTIFIER Colon EXRP
+// BINDING_LIST = BINDING [Comma BINDING]*
+// OBJECT = LBRACE BINDING_LIST? RBRACE
 //
 // FUNCTION_CALL = Identifier LParen LIST RParen
 //
@@ -49,22 +49,20 @@ import {createLexer, TokenKind} from './lexer';
 //
 // ARRAY_INDEX
 //
-// EXPR =
-//   LITERAL_EXPR
-//   FUNCTION_CALL
-//   IDENTIFIER
+// PROGRAM = VARDEC* (USE | RETURN)
+//
+// USE = Use EXPR
+// RETURN = Return EXPR
 //
 // EXPR2 =
 //   DOT_EXPR
 //   ARRAY_INDEX
 //   EXPR
 //
-// USE = 'use' EXPR
-// RETURN = 'return' EXPR
-//
-// PROGRAM = VARDEC* (USE | RETURN)
-
-// // import {SymbolTable} from './symbol-table';
+// EXPR =
+//   LITERAL_EXPR
+//   FUNCTION_CALL
+//   IDENTIFIER
 
 function applyBoolean(value: Token<TokenKind.Boolean>): ASTLiteral<boolean> {
   return new ASTLiteral(value.text === 'true', value.pos);
@@ -99,6 +97,7 @@ function applyObject(
   const result: Record<string, ASTNode<any>> = {};
   for (const {key, value} of bindings || []) {
     // TODO: safe property set
+    // TODO: check for duplicate keys
     result[key] = value;
   }
   return new ASTObject(result, tokenRange[0]!.pos);
@@ -139,18 +138,7 @@ function applyArrayIndex(
   return new ASTIndex(array, index, tokenRange[0]!.pos);
 }
 
-// function applyDot(
-//   [parent, child]: [ASTNode<unknown>, Token<TokenKind.Identifier>],
-//   tokenRange: TokenRange
-// ): ASTDot {
-//   return new ASTDot(
-//     parent,
-//     new ASTReference(child.text, tokenRange[0]!.pos),
-//     tokenRange[0]!.pos
-//   );
-// }
-
-function applyDot2(
+function applyDot(
   [parent, first, rest]: [
     ASTNode<unknown>,
     Token<TokenKind.Identifier>,
@@ -187,20 +175,111 @@ function applyFunction(
   );
 }
 
-const LITERAL_EXPR = rule<TokenKind, ASTNode<unknown>>();
+export enum Action {
+  Use,
+  Return,
+}
 
+export type Program = {
+  context: Record<string, ASTNode<unknown>>;
+  node: ASTNode<unknown>;
+  action: Action;
+};
+
+function applyProgram([aliases, token, node]: [
+  Binding[],
+  Token<TokenKind.Return> | Token<TokenKind.Use>,
+  ASTNode<unknown>
+]): Program {
+  const context: Record<string, ASTNode<unknown>> = {};
+  for (const {key, value} of aliases) {
+    // TODO: check for duplicate keys
+    // TODO: use safe property set
+    context[key] = value;
+  }
+  return {
+    context,
+    node,
+    action: token.kind === TokenKind.Return ? Action.Return : Action.Use,
+  };
+}
+
+const ALIAS_DEC = rule<TokenKind, Binding>();
+const ARRAY_INDEX_EXPR = rule<TokenKind, ASTNode<unknown[]>>();
 const BINDING = rule<TokenKind, Binding>();
-const OBJECT = rule<TokenKind, ASTNode<unknown>>();
-// kmid(tok(TokenKind.LBracket, TokenKind.RBracket))
-const EXPR2 = rule<TokenKind, ASTNode<unknown>>();
 const DOT_EXPR = rule<TokenKind, ASTNode<unknown>>();
-const ARRAY_INDEX = rule<TokenKind, ASTNode<unknown[]>>();
 const EXPR = rule<TokenKind, ASTNode<unknown>>();
+const EXPR2 = rule<TokenKind, ASTNode<unknown>>();
+const FUNCTION_CALL = rule<TokenKind, ASTNode<unknown>>();
+const IDENTIFIER = rule<TokenKind, ASTNode<unknown>>();
+const LITERAL_EXPR = rule<TokenKind, ASTNode<unknown>>();
+const OBJECT = rule<TokenKind, ASTNode<unknown>>();
+const PROGRAM = rule<TokenKind, Program>();
+const TUPLE = rule<TokenKind, ASTNode<unknown>>();
 
-BINDING.setPattern(
+PROGRAM.setPattern(
   apply(
-    seq(tok(TokenKind.Identifier), kright(tok(TokenKind.Colon), EXPR)),
+    seq(
+      rep_sc(ALIAS_DEC),
+      alt(tok(TokenKind.Use), tok(TokenKind.Return)),
+      EXPR
+    ),
+    applyProgram
+  )
+);
+
+ALIAS_DEC.setPattern(
+  apply(
+    seq(tok(TokenKind.Identifier), kright(tok(TokenKind.Equals), EXPR2)),
     applyBinding
+  )
+);
+
+EXPR2.setPattern(alt(DOT_EXPR, ARRAY_INDEX_EXPR, EXPR));
+
+DOT_EXPR.setPattern(
+  apply(
+    seq(
+      EXPR,
+      kright(tok(TokenKind.Dot), tok(TokenKind.Identifier)),
+      rep_sc(kright(tok(TokenKind.Dot), tok(TokenKind.Identifier)))
+    ),
+    applyDot
+  )
+);
+
+ARRAY_INDEX_EXPR.setPattern(
+  apply(
+    seq(EXPR, kmid(tok(TokenKind.LBracket), EXPR2, tok(TokenKind.RBracket))),
+    applyArrayIndex
+  )
+);
+
+EXPR.setPattern(alt(LITERAL_EXPR, FUNCTION_CALL, IDENTIFIER));
+
+IDENTIFIER.setPattern(apply(tok(TokenKind.Identifier), applyIdentifier));
+
+LITERAL_EXPR.setPattern(
+  alt(
+    apply(tok(TokenKind.Number), applyNumber),
+    apply(tok(TokenKind.String), applyString),
+    apply(tok(TokenKind.Boolean), applyBoolean),
+    OBJECT,
+    TUPLE
+  )
+);
+
+FUNCTION_CALL.setPattern(
+  apply(
+    seq(
+      tok(TokenKind.Identifier),
+      kmid(
+        tok(TokenKind.LParen),
+        opt(list_sc(EXPR2, tok(TokenKind.Comma))),
+        tok(TokenKind.RParen)
+      )
+    ),
+    applyFunction
   )
 );
 
@@ -215,86 +294,23 @@ OBJECT.setPattern(
   )
 );
 
-LITERAL_EXPR.setPattern(
-  alt(
-    apply(tok(TokenKind.Number), applyNumber),
-    apply(tok(TokenKind.String), applyString),
-    apply(tok(TokenKind.Boolean), applyBoolean),
-    apply(
-      kmid(
-        tok(TokenKind.LBracket),
-        opt(list_sc(LITERAL_EXPR, tok(TokenKind.Comma))),
-        tok(TokenKind.RBracket)
-      ),
-      applyTuple
-    ),
-    OBJECT
-  )
-);
-
-EXPR.setPattern(
-  alt(
-    LITERAL_EXPR,
-    //     apply(tok(TokenKind.Number), applyNumber),
-    //     apply(tok(TokenKind.String), applyString),
-    //     apply(tok(TokenKind.Boolean), applyBoolean),
-    apply(
-      seq(
-        tok(TokenKind.Identifier),
-        kmid(
-          tok(TokenKind.LParen),
-          opt(list_sc(EXPR, tok(TokenKind.Comma))),
-          tok(TokenKind.RParen)
-        )
-      ),
-      applyFunction
-    ),
-    // apply(
-    //   seq(EXPR, lrec_sc(kright(tok(TokenKind.Dot), tok(TokenKind.Identifier)),)),
-    //   applyDot
-    // ),
-    // apply(
-    //   seq(kleft(EXPR, tok(TokenKind.Dot)), tok(TokenKind.Identifier)),
-    //   applyDot
-    // ),
-    apply(tok(TokenKind.Identifier), applyIdentifier)
-    // DOT_EXPR
-    //     apply(
-    //       kmid(
-    //         tok(TokenKind.LBracket),
-    //         opt(list_sc(EXPR, tok(TokenKind.Comma))),
-    //         tok(TokenKind.RBracket)
-    //       ),
-    //       applyTuple
-    //     )
-  )
-);
-
-// DOT_EXPR.setPattern(
-//   apply(
-//     seq(kleft(EXPR, tok(TokenKind.Dot)), tok(TokenKind.Identifier)),
-//     applyDot
-//   )
-// );
-DOT_EXPR.setPattern(
+BINDING.setPattern(
   apply(
-    seq(
-      EXPR,
-      kright(tok(TokenKind.Dot), tok(TokenKind.Identifier)),
-      rep_sc(kright(tok(TokenKind.Dot), tok(TokenKind.Identifier)))
-    ),
-    applyDot2
+    seq(tok(TokenKind.Identifier), kright(tok(TokenKind.Colon), EXPR2)),
+    applyBinding
   )
 );
 
-ARRAY_INDEX.setPattern(
+TUPLE.setPattern(
   apply(
-    seq(EXPR, kmid(tok(TokenKind.LBracket), EXPR, tok(TokenKind.RBracket))),
-    applyArrayIndex
+    kmid(
+      tok(TokenKind.LBracket),
+      opt(list_sc(EXPR2, tok(TokenKind.Comma))),
+      tok(TokenKind.RBracket)
+    ),
+    applyTuple
   )
 );
-
-EXPR2.setPattern(alt(DOT_EXPR, ARRAY_INDEX, EXPR));
 
 // const VARDEC = rule<TokenKind, VarDec>();
 // VARDEC.setPattern(

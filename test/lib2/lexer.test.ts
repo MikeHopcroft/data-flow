@@ -44,7 +44,7 @@ describe('Lexer', () => {
       },
       {
         name: 'delimiters',
-        input: '[](),=.',
+        input: '[](),=.:{}',
         expected: [
           {kind: TokenKind.LBracket, text: '['},
           {kind: TokenKind.RBracket, text: ']'},
@@ -53,8 +53,20 @@ describe('Lexer', () => {
           {kind: TokenKind.Comma, text: ','},
           {kind: TokenKind.Equals, text: '='},
           {kind: TokenKind.Dot, text: '.'},
+          {kind: TokenKind.Colon, text: ':'},
+          {kind: TokenKind.LBrace, text: '{'},
+          {kind: TokenKind.RBrace, text: '}'},
         ],
       },
+      {
+        name: 'comment - //',
+        input: '1 // comment 5\nfalse',
+        expected: [
+          {kind: TokenKind.Number, text: '1'},
+          {kind: TokenKind.Boolean, text: 'false'},
+        ],
+      },
+      // TODO: comment /* */
     ];
 
     const lexer = createLexer();
@@ -116,6 +128,7 @@ describe('Lexer', () => {
             observed.push({kind, text});
             current = current.next;
           }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
           ok = true;
           if ('errorMessage' in e) {

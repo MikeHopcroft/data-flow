@@ -1,37 +1,25 @@
 import {
   alt,
   apply,
-  //   buildLexer,
   expectEOF,
   expectSingleResult,
-  kleft,
   kmid,
   kright,
   list_sc,
-  lrec_sc,
   opt,
   rep_sc,
-  //   rep_sc,
   rule,
   seq,
   tok,
   Token,
 } from 'typescript-parsec';
 
-// import {
-//   ASTFunction,
-//   ASTLiteral,
-//   ASTReference,
-//   ASTTuple,
-//   // booleanLiteral,
-//   // numberLiteral,
-//   // stringLiteral,
-// } from './ast-nodes';
-
 import {
   ASTDot,
   ASTFunction,
+  ASTIndex,
   ASTLiteral,
+  ASTObject,
   ASTReference,
   ASTTuple,
 } from './ast-nodes';
@@ -44,17 +32,32 @@ import {createLexer, TokenKind} from './lexer';
 //
 // TUPLE = LBracket LIST RBracket
 //
-// CALL = Identifier LParen LIST RParen
+// BINDING = IDENTIFIER ':' EXRP
+// BINDING_LIST = BINDING [',' BINDING]*
+// OBJECT = '{' BINDING_LIST? '}'
 //
-// EXPR =
+// FUNCTION_CALL = Identifier LParen LIST RParen
+//
+// LITERAL_EXPR =
+//   Boolean
 //   Number
 //   String
-//   Boolean
 //   TUPLE
+//   OBJECT
+//
+// DOT_EXPR =
+//
+// ARRAY_INDEX
+//
+// EXPR =
+//   LITERAL_EXPR
+//   FUNCTION_CALL
+//   IDENTIFIER
+//
+// EXPR2 =
+//   DOT_EXPR
 //   ARRAY_INDEX
-//   CALL
-//   DOT
-//   Identifier
+//   EXPR
 //
 // USE = 'use' EXPR
 // RETURN = 'return' EXPR
@@ -76,6 +79,30 @@ function applyString(value: Token<TokenKind.String>): ASTLiteral<string> {
 }
 
 type TokenRange = [Token<TokenKind> | undefined, Token<TokenKind> | undefined];
+
+type Binding = {key: string; value: ASTNode<unknown>};
+
+function applyBinding([key, value]: [
+  Token<TokenKind.Identifier>,
+  ASTNode<unknown>
+]): Binding {
+  return {key: key.text, value};
+}
+
+function applyObject(
+  bindings: Binding[] | undefined,
+  tokenRange: TokenRange
+): ASTNode<unknown> {
+  // TODO: sort out position
+  // TODO: tokenRange can be undefined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result: Record<string, ASTNode<any>> = {};
+  for (const {key, value} of bindings || []) {
+    // TODO: safe property set
+    result[key] = value;
+  }
+  return new ASTObject(result, tokenRange[0]!.pos);
+}
 
 function applyTuple(
   value: ASTNode<unknown>[] | undefined,
@@ -105,16 +132,23 @@ function applyIdentifier(value: Token<TokenKind.Identifier>): ASTReference {
 //   return {symbol: value[0].text, node: value[2]};
 // }
 
-function applyDot(
-  [parent, child]: [ASTNode<unknown>, Token<TokenKind.Identifier>],
+function applyArrayIndex(
+  [array, index]: [ASTNode<unknown>, ASTNode<unknown>],
   tokenRange: TokenRange
-): ASTDot {
-  return new ASTDot(
-    parent,
-    new ASTReference(child.text, tokenRange[0]!.pos),
-    tokenRange[0]!.pos
-  );
+) {
+  return new ASTIndex(array, index, tokenRange[0]!.pos);
 }
+
+// function applyDot(
+//   [parent, child]: [ASTNode<unknown>, Token<TokenKind.Identifier>],
+//   tokenRange: TokenRange
+// ): ASTDot {
+//   return new ASTDot(
+//     parent,
+//     new ASTReference(child.text, tokenRange[0]!.pos),
+//     tokenRange[0]!.pos
+//   );
+// }
 
 function applyDot2(
   [parent, first, rest]: [
@@ -155,6 +189,32 @@ function applyFunction(
 
 const LITERAL_EXPR = rule<TokenKind, ASTNode<unknown>>();
 
+const BINDING = rule<TokenKind, Binding>();
+const OBJECT = rule<TokenKind, ASTNode<unknown>>();
+// kmid(tok(TokenKind.LBracket, TokenKind.RBracket))
+const EXPR2 = rule<TokenKind, ASTNode<unknown>>();
+const DOT_EXPR = rule<TokenKind, ASTNode<unknown>>();
+const ARRAY_INDEX = rule<TokenKind, ASTNode<unknown[]>>();
+const EXPR = rule<TokenKind, ASTNode<unknown>>();
+
+BINDING.setPattern(
+  apply(
+    seq(tok(TokenKind.Identifier), kright(tok(TokenKind.Colon), EXPR)),
+    applyBinding
+  )
+);
+
+OBJECT.setPattern(
+  apply(
+    kmid(
+      tok(TokenKind.LBrace),
+      opt(list_sc(BINDING, tok(TokenKind.Comma))),
+      tok(TokenKind.RBrace)
+    ),
+    applyObject
+  )
+);
+
 LITERAL_EXPR.setPattern(
   alt(
     apply(tok(TokenKind.Number), applyNumber),
@@ -167,13 +227,10 @@ LITERAL_EXPR.setPattern(
         tok(TokenKind.RBracket)
       ),
       applyTuple
-    )
+    ),
+    OBJECT
   )
 );
-
-const EXPR2 = rule<TokenKind, ASTNode<unknown>>();
-const DOT_EXPR = rule<TokenKind, ASTNode<unknown>>();
-const EXPR = rule<TokenKind, ASTNode<unknown>>();
 
 EXPR.setPattern(
   alt(
@@ -230,7 +287,14 @@ DOT_EXPR.setPattern(
   )
 );
 
-EXPR2.setPattern(alt(DOT_EXPR, EXPR));
+ARRAY_INDEX.setPattern(
+  apply(
+    seq(EXPR, kmid(tok(TokenKind.LBracket), EXPR, tok(TokenKind.RBracket))),
+    applyArrayIndex
+  )
+);
+
+EXPR2.setPattern(alt(DOT_EXPR, ARRAY_INDEX, EXPR));
 
 // const VARDEC = rule<TokenKind, VarDec>();
 // VARDEC.setPattern(

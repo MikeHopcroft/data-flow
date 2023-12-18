@@ -1,11 +1,12 @@
+* Safe property set in object literal
 * Check for cycles
 * Literals
-  * object
+  * x object
   * undefined
   * null
 * Operators
   * x dot
-  * []
+  * x []
 * lodash deep compare of objects
 * Structure
   * vardecs
@@ -16,8 +17,8 @@
   * x Escaped quotes in strings
   * Other escape codes in strings
   * Unefined and null
-  * Resuse RE from safe getter
-  * // comments
+  * Reuse RE from safe getter
+  * x // comments
   * /* */ comments
   * String interpolation parts
     * No expression

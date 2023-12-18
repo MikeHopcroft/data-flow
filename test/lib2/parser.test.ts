@@ -5,6 +5,7 @@ import {ASTLiteral, Context, parseLiteral} from '../../src/lib2';
 import {TokenPosition} from 'typescript-parsec';
 
 type Group = {name: string; cases: Case[]};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Case = {name: string; input: string; expected: any};
 
 describe('Parser2', () => {
@@ -41,6 +42,18 @@ describe('Parser2', () => {
           expected: [123, 'hello', true, [false, [1]]],
         },
         // TODO: object literals
+        {name: 'object - empty', input: '{}', expected: {}},
+        {name: 'object - one prop', input: '{a: 1}', expected: {a: 1}},
+        {
+          name: 'object - two props',
+          input: '{a: 1, b: true}',
+          expected: {a: 1, b: true},
+        },
+        {
+          name: 'object - nested',
+          input: '{a: 1, b:{c: "hello"}}',
+          expected: {a: 1, b: {c: 'hello'}},
+        },
       ],
     },
     {
@@ -57,13 +70,14 @@ describe('Parser2', () => {
         {name: 'dot', input: 'a.b', expected: {c: 1010}},
         {name: 'dot dot', input: 'a.b.c', expected: 1010},
         {name: 'g(1,2).b', input: 'g(1,2).b', expected: 2},
+        {name: 'array index', input: 'b[1]', expected: 2},
       ],
     },
     {
       name: 'Keywords',
       cases: [
-        // return
-        // use
+        // TODO: return
+        // TODO: use
       ],
     },
   ];
@@ -80,6 +94,7 @@ describe('Parser2', () => {
     {
       x: 123,
       a: {b: {c: 1010}},
+      b: [1, 2, 3],
       f: (a: number, b: number) => a + b,
       g: (a: number, b: number) => ({a, b}),
     },

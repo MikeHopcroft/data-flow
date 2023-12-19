@@ -4,6 +4,7 @@ export enum ErrorCode {
   // Lexical errors
   // Parse errors
   // Runtime errors
+  DUPLICATE_KEY,
   ILLEGAL_IDENTIFIER,
   INACCESSIBLE_PROPERTY,
   EXPECTED_ARRAY,
@@ -17,6 +18,7 @@ const errorCodeToString = new Map([
   // Lexical errors
   // Parse errors
   // Runtime errors
+  [ErrorCode.DUPLICATE_KEY, 'Duplicate key'],
   [ErrorCode.ILLEGAL_IDENTIFIER, 'Illegal identifier'],
   [ErrorCode.INACCESSIBLE_PROPERTY, 'Inaccessible property'],
   [ErrorCode.EXPECTED_ARRAY, 'Expected an array'],

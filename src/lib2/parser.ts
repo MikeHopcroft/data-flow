@@ -23,6 +23,8 @@ import {
   ASTReference,
   ASTTuple,
 } from './ast-nodes';
+import {saferGet} from './context';
+import {ErrorCode, ErrorEx} from './errors';
 import {ASTNode} from './interfaces';
 import {createLexer, TokenKind} from './lexer';
 
@@ -96,8 +98,10 @@ function applyObject(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: Record<string, ASTNode<any>> = {};
   for (const {key, value} of bindings || []) {
-    // TODO: safe property set
-    // TODO: check for duplicate keys
+    // Validate property name while checking for duplicate keys.
+    if (saferGet(result, key)) {
+      throw new ErrorEx(ErrorCode.DUPLICATE_KEY, `Duplicate key "${key}".`);
+    }
     result[key] = value;
   }
   return new ASTObject(result, tokenRange[0]!.pos);
@@ -115,21 +119,6 @@ function applyTuple(
 function applyIdentifier(value: Token<TokenKind.Identifier>): ASTReference {
   return new ASTReference(value.text, value.pos);
 }
-
-// interface VarDec {
-//   symbol: string;
-//   node: ASTNode<unknown>;
-// }
-
-// function applyVarDec(
-//   value: [
-//     Token<TokenKind.Identifier>,
-//     Token<TokenKind.Equals>,
-//     ASTNode<unknown>
-//   ]
-// ): VarDec {
-//   return {symbol: value[0].text, node: value[2]};
-// }
 
 function applyArrayIndex(
   [array, index]: [ASTNode<unknown>, ASTNode<unknown>],
@@ -193,8 +182,10 @@ function applyProgram([aliases, token, node]: [
 ]): Program {
   const context: Record<string, ASTNode<unknown>> = {};
   for (const {key, value} of aliases) {
-    // TODO: check for duplicate keys
-    // TODO: use safe property set
+    // Validate property name while checking for duplicate keys.
+    if (saferGet(context, key)) {
+      throw new ErrorEx(ErrorCode.DUPLICATE_KEY, `Duplicate key "${key}".`);
+    }
     context[key] = value;
   }
   return {

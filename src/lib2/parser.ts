@@ -7,6 +7,7 @@ import {
   kright,
   list_sc,
   opt,
+  opt_sc,
   rep_sc,
   rule,
   seq,
@@ -21,6 +22,7 @@ import {
   ASTLiteral,
   ASTObject,
   ASTReference,
+  ASTTemplate,
   ASTTuple,
 } from './ast-nodes';
 import {saferGet} from './context';
@@ -206,6 +208,7 @@ const IDENTIFIER = rule<TokenKind, ASTNode<unknown>>();
 const LITERAL_EXPR = rule<TokenKind, ASTNode<unknown>>();
 const OBJECT = rule<TokenKind, ASTNode<unknown>>();
 const PROGRAM = rule<TokenKind, Program>();
+const TEMPLATE_LITERAL = rule<TokenKind, ASTNode<string>>();
 const TUPLE = rule<TokenKind, ASTNode<unknown>>();
 
 PROGRAM.setPattern(
@@ -246,7 +249,7 @@ ARRAY_INDEX_EXPR.setPattern(
   )
 );
 
-EXPR.setPattern(alt(LITERAL_EXPR, FUNCTION_CALL, IDENTIFIER));
+EXPR.setPattern(alt(LITERAL_EXPR, FUNCTION_CALL, IDENTIFIER, TEMPLATE_LITERAL));
 
 IDENTIFIER.setPattern(apply(tok(TokenKind.Identifier), applyIdentifier));
 
@@ -257,6 +260,56 @@ LITERAL_EXPR.setPattern(
     apply(tok(TokenKind.Boolean), applyBoolean),
     OBJECT,
     TUPLE
+  )
+);
+
+function applyTemplate(
+  value: Token<
+    | TokenKind.TemplateComplete
+    | TokenKind.TemplateLeft
+    | TokenKind.TemplateMiddle
+    | TokenKind.TemplateRight
+  >
+): ASTNode<string> {
+  if (
+    value.kind === TokenKind.TemplateComplete ||
+    value.kind === TokenKind.TemplateRight
+  ) {
+    return new ASTLiteral(value.text.slice(1, -1), value.pos);
+  } else {
+    return new ASTLiteral(value.text.slice(1, -2), value.pos);
+  }
+}
+
+function applyTemplate2(
+  [left, first, middle, right]: [
+    ASTNode<string>,
+    ASTNode<unknown>,
+    [ASTNode<string>, ASTNode<unknown>][] | undefined,
+    ASTNode<string>
+  ],
+  tokenRange: TokenRange
+): ASTTemplate {
+  const elements = [left, first, ...(middle || []), right].flat();
+  return new ASTTemplate(elements, tokenRange[0]!.pos);
+}
+
+TEMPLATE_LITERAL.setPattern(
+  alt(
+    apply(tok(TokenKind.TemplateComplete), applyTemplate),
+    apply(
+      seq(
+        apply(tok(TokenKind.TemplateLeft), applyTemplate),
+        EXPR2,
+        opt_sc(
+          rep_sc(
+            seq(apply(tok(TokenKind.TemplateMiddle), applyTemplate), EXPR2)
+          )
+        ),
+        apply(tok(TokenKind.TemplateRight), applyTemplate)
+      ),
+      applyTemplate2
+    )
   )
 );
 
@@ -303,51 +356,11 @@ TUPLE.setPattern(
   )
 );
 
-// const VARDEC = rule<TokenKind, VarDec>();
-// VARDEC.setPattern(
-//   apply(
-//     seq(tok(TokenKind.Identifier), tok(TokenKind.Equals), EXPR),
-//     applyVarDec
-//   )
-// );
-
-// const PROGRAM = rule<TokenKind, Program>();
-// PROGRAM.setPattern(
-//   apply(
-//     seq(rep_sc(VARDEC), alt(tok(TokenKind.Use), tok(TokenKind.Return)), EXPR),
-//     applyProgram
-//   )
-// );
-
-// export enum Action {
-//   Use,
-//   Return,
-// }
-
-// export interface Program {
-//   symbols: SymbolTable;
-//   action: Action;
-//   expression: ASTNode<unknown>;
-// }
-
-// function applyProgram([vardecs, action, expression]: [
-//   VarDec[],
-//   Token<TokenKind.Use> | Token<TokenKind.Return>,
-//   ASTNode<unknown>
-// ]): Program {
-//   const symbols = new SymbolTable(vardecs.map(x => [x.symbol, x.node]));
-//   return {
-//     symbols,
-//     action: action.kind === TokenKind.Use ? Action.Use : Action.Return,
-//     expression,
-//   };
-// }
-
-// export function parse(text: string): Program {
-//   return expectSingleResult(expectEOF(PROGRAM.parse(lexer.parse(text))));
-// }
-
 export function parseLiteral(text: string): ASTNode<unknown> {
   const lexer = createLexer();
-  return expectSingleResult(expectEOF(EXPR2.parse(lexer.parse(text))));
+  const a = EXPR2.parse(lexer.parse(text));
+  const b = expectEOF(a);
+  const c = expectSingleResult(b);
+  return c;
+  // return expectSingleResult(expectEOF(EXPR2.parse(lexer.parse(text))));
 }

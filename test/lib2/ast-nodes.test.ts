@@ -10,6 +10,7 @@ import {
   ASTNode,
   ASTObject,
   ASTReference,
+  ASTTemplate,
   ASTTuple,
   Context,
   ErrorCode,
@@ -92,6 +93,18 @@ describe('ASTNode', () => {
           position
         ),
         expected: [1, 2, 3],
+      },
+      {
+        name: 'template literal',
+        input: new ASTTemplate(
+          [
+            new ASTLiteral('before ', position),
+            new ASTLiteral(2, position),
+            new ASTLiteral(' after', position),
+          ],
+          position
+        ),
+        expected: 'before 2 after',
       },
       {
         name: 'identifier',

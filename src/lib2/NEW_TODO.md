@@ -23,10 +23,10 @@
   * Reuse RE from safe getter
   * x Escaped quotes in strings
   * x // comments
-  * String interpolation parts
-    * No expression
-    * One expression
-    * Multiple expressions
+  * x String interpolation parts
+    * x No expression
+    * x One expression
+    * x Multiple expressions
 * Compare
   * resolve() - looks up and replaces aliases
   * compare() - distance metric for two AST trees
@@ -52,3 +52,24 @@
   * b is evaluated in Context(a)
   * c is evaluated in Context(b)
   * Which context is \[global] evaluated?
+
+
+~~~
+> a.match(/(?:[^\$]|(?:(?!\${)\$))*/)
+[ '`a $ b ', index: 0, input: '`a $ b ${c} d e`', groups: undefined ]
+> a
+'`a $ b ${c} d e`'
+>
+
+> a
+'`a $ b ${c} d e`'
+> a.match(/`(?:[^\$`]|(?:(?!\${)\$))*/)
+[ '`a $ b ', index: 0, input: '`a $ b ${c} d e`', groups: undefined ]
+> a.match(/`(?:[^\$`]|(?:(?!\${)\$))*\${/)
+[ '`a $ b ${', index: 0, input: '`a $ b ${c} d e`', groups: undefined ]
+>
+~~~
+
+https://www.npmjs.com/package/@tootallnate/quickjs-emscripten
+https://www.npmjs.com/package/safe-eval
+https://www.npmjs.com/package/eval

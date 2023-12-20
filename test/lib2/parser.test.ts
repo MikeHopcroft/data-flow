@@ -87,6 +87,22 @@ describe('Parser2', () => {
       ],
     },
     {
+      name: 'Template literals',
+      cases: [
+        {name: 'degenerate', input: '`hello`', expected: 'hello'},
+        {
+          name: 'one expression',
+          input: '`hello ${123} times.`',
+          expected: 'hello 123 times.',
+        },
+        {
+          name: 'two expressions',
+          input: '`hello ${123} times. f(1,1)=${f(1,1)}!`',
+          expected: 'hello 123 times. f(1,1)=2!',
+        },
+      ],
+    },
+    {
       name: 'Operators',
       cases: [
         {name: 'function call', input: 'f(1,2)', expected: 3},

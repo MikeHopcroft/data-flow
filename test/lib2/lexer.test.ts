@@ -67,6 +67,22 @@ describe('Lexer', () => {
         ],
       },
       // TODO: comment /* */
+      {
+        name: 'template literal - degenerate',
+        input: ' `hello` ',
+        expected: [{kind: TokenKind.TemplateComplete, text: '`hello`'}],
+      },
+      {
+        name: 'template literal - typical',
+        input: ' `hello $ { } ${name}, how ${true}!` ',
+        expected: [
+          {kind: TokenKind.TemplateLeft, text: '`hello $ { } ${'},
+          {kind: TokenKind.Identifier, text: 'name'},
+          {kind: TokenKind.TemplateMiddle, text: '}, how ${'},
+          {kind: TokenKind.Boolean, text: 'true'},
+          {kind: TokenKind.TemplateRight, text: '}!`'},
+        ],
+      },
     ];
 
     const lexer = createLexer();

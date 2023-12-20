@@ -36,6 +36,26 @@ export class ASTLiteral<T extends Literal> implements ASTNode<T> {
 
 ///////////////////////////////////////////////////////////////////////////////
 //
+// ASTTemplate
+//
+///////////////////////////////////////////////////////////////////////////////
+export class ASTTemplate implements ASTNode<string> {
+  position: TokenPosition;
+  elements: ASTNode<unknown>[];
+
+  constructor(elements: ASTNode<unknown>[], position: TokenPosition) {
+    this.elements = elements;
+    this.position = position;
+  }
+
+  async eval(context: IEvaluationContext): Promise<string> {
+    const promises = this.elements.map(p => p.eval(context));
+    return (await Promise.all(promises)).join('');
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
 // ASTTuple
 //
 ///////////////////////////////////////////////////////////////////////////////

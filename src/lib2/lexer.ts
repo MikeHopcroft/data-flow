@@ -19,6 +19,10 @@ export enum TokenKind {
   Equals,
   Space,
   Comment,
+  TemplateComplete,
+  TemplateLeft,
+  TemplateMiddle,
+  TemplateRight,
 }
 
 export function createLexer() {
@@ -47,7 +51,11 @@ export function createLexer() {
     // TODO: /* */ comments, when not inside strings
     [false, /^\/\/[^\n]*/g, TokenKind.Comment],
     [false, /^\s+/g, TokenKind.Space],
-    // TODO: string interpolation
+    // Template literals
+    [true, /^`(?:[^$`]|(?:(?!\${)\$))*`/g, TokenKind.TemplateComplete],
+    [true, /^`(?:[^$`]|(?:(?!\${)\$))*\${/g, TokenKind.TemplateLeft],
+    [true, /^}(?:[^$`]|(?:(?!\${)\$))*\${/g, TokenKind.TemplateMiddle],
+    [true, /^}(?:[^$`]|(?:(?!\${)\$))*`/g, TokenKind.TemplateRight],
   ]);
   return lexer;
 }

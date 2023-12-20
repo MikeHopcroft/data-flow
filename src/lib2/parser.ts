@@ -3,6 +3,7 @@ import {
   apply,
   expectEOF,
   expectSingleResult,
+  kleft,
   kmid,
   kright,
   list_sc,
@@ -122,6 +123,36 @@ function applyIdentifier(value: Token<TokenKind.Identifier>): ASTReference {
   return new ASTReference(value.text, value.pos);
 }
 
+function applyTemplate(
+  value: Token<
+    | TokenKind.TemplateComplete
+    | TokenKind.TemplateLeft
+    | TokenKind.TemplateMiddle
+    | TokenKind.TemplateRight
+  >
+): ASTNode<string> {
+  if (
+    value.kind === TokenKind.TemplateComplete ||
+    value.kind === TokenKind.TemplateRight
+  ) {
+    return new ASTLiteral(value.text.slice(1, -1), value.pos);
+  } else {
+    return new ASTLiteral(value.text.slice(1, -2), value.pos);
+  }
+}
+
+function applyTemplate2(
+  [left, first, middle, right]: [
+    ASTNode<string>,
+    ASTNode<unknown>,
+    [ASTNode<string>, ASTNode<unknown>][] | undefined,
+    ASTNode<string>
+  ],
+  tokenRange: TokenRange
+): ASTTemplate {
+  const elements = [left, first, ...(middle || []), right].flat();
+  return new ASTTemplate(elements, tokenRange[0]!.pos);
+}
 function applyArrayIndex(
   [array, index]: [ASTNode<unknown>, ASTNode<unknown>],
   tokenRange: TokenRange
@@ -216,7 +247,7 @@ PROGRAM.setPattern(
     seq(
       rep_sc(ALIAS_DEC),
       alt(tok(TokenKind.Use), tok(TokenKind.Return)),
-      EXPR
+      kleft(EXPR, tok(TokenKind.Semicolon))
     ),
     applyProgram
   )
@@ -224,7 +255,10 @@ PROGRAM.setPattern(
 
 ALIAS_DEC.setPattern(
   apply(
-    seq(tok(TokenKind.Identifier), kright(tok(TokenKind.Equals), EXPR2)),
+    seq(
+      tok(TokenKind.Identifier),
+      kmid(tok(TokenKind.Equals), EXPR2, tok(TokenKind.Semicolon))
+    ),
     applyBinding
   )
 );
@@ -262,37 +296,6 @@ LITERAL_EXPR.setPattern(
     TUPLE
   )
 );
-
-function applyTemplate(
-  value: Token<
-    | TokenKind.TemplateComplete
-    | TokenKind.TemplateLeft
-    | TokenKind.TemplateMiddle
-    | TokenKind.TemplateRight
-  >
-): ASTNode<string> {
-  if (
-    value.kind === TokenKind.TemplateComplete ||
-    value.kind === TokenKind.TemplateRight
-  ) {
-    return new ASTLiteral(value.text.slice(1, -1), value.pos);
-  } else {
-    return new ASTLiteral(value.text.slice(1, -2), value.pos);
-  }
-}
-
-function applyTemplate2(
-  [left, first, middle, right]: [
-    ASTNode<string>,
-    ASTNode<unknown>,
-    [ASTNode<string>, ASTNode<unknown>][] | undefined,
-    ASTNode<string>
-  ],
-  tokenRange: TokenRange
-): ASTTemplate {
-  const elements = [left, first, ...(middle || []), right].flat();
-  return new ASTTemplate(elements, tokenRange[0]!.pos);
-}
 
 TEMPLATE_LITERAL.setPattern(
   alt(
@@ -356,11 +359,12 @@ TUPLE.setPattern(
   )
 );
 
-export function parseLiteral(text: string): ASTNode<unknown> {
+export function parseExpression(text: string): ASTNode<unknown> {
   const lexer = createLexer();
-  const a = EXPR2.parse(lexer.parse(text));
-  const b = expectEOF(a);
-  const c = expectSingleResult(b);
-  return c;
-  // return expectSingleResult(expectEOF(EXPR2.parse(lexer.parse(text))));
+  return expectSingleResult(expectEOF(EXPR2.parse(lexer.parse(text))));
+}
+
+export function parse(text: string): Program {
+  const lexer = createLexer();
+  return expectSingleResult(expectEOF(PROGRAM.parse(lexer.parse(text))));
 }

@@ -15,6 +15,7 @@ export enum TokenKind {
   RParen,
   Comma,
   Colon,
+  Semicolon,
   Dot,
   Equals,
   Space,
@@ -46,6 +47,7 @@ export function createLexer() {
     [true, /^\)/g, TokenKind.RParen],
     [true, /^,/g, TokenKind.Comma],
     [true, /^:/g, TokenKind.Colon],
+    [true, /^;/g, TokenKind.Semicolon],
     [true, /^\./g, TokenKind.Dot],
     [true, /^=/g, TokenKind.Equals],
     // TODO: /* */ comments, when not inside strings

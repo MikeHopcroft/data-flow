@@ -1,7 +1,14 @@
 import {assert} from 'chai';
+import dedent from 'dedent';
 import 'mocha';
 
-import {ASTLiteral, Context, parseLiteral} from '../../src/lib2';
+import {
+  ASTLiteral,
+  Action,
+  Context,
+  parse,
+  parseExpression,
+} from '../../src/lib2';
 import {TokenPosition} from 'typescript-parsec';
 
 type Group = {name: string; cases: Case[]};
@@ -9,12 +16,6 @@ type Group = {name: string; cases: Case[]};
 type Case = {name: string; input: string; expected: any};
 
 describe('Parser2', () => {
-  // it('test', () => {
-  //   const a = new ASTLiteral(1, position);
-  //   const b = new ASTLiteral(1, position);
-  //   assert.deepEqual(a, b);
-  // });
-
   const groups: Group[] = [
     {
       name: 'Primitives',
@@ -147,7 +148,74 @@ describe('Parser2', () => {
     describe(group.name, () => {
       for (const {name, input, expected} of group.cases) {
         it(name, async () => {
-          const observed = await parseLiteral(input).eval(context);
+          const observed = await parseExpression(input).eval(context);
+          assert.deepEqual(observed, expected);
+        });
+      }
+    });
+  }
+});
+
+describe('Program', () => {
+  const groups: Group[] = [
+    {
+      name: 'Return',
+      cases: [
+        {
+          name: 'No aliases',
+          input: 'return 123;',
+          expected: {action: Action.Return, value: 123},
+        },
+        {
+          name: 'Alias chain',
+          input: dedent`
+            a = 123;
+            b = 456;
+            c = f(a,b);
+            return c;
+          `,
+          expected: {action: Action.Return, value: 579},
+        },
+      ],
+    },
+    {
+      name: 'Use',
+      cases: [
+        {
+          name: 'No aliases',
+          input: 'use 123;',
+          expected: {action: Action.Use, value: 123},
+        },
+        {
+          name: 'Alias chain',
+          input: dedent`
+            a = 123;
+            b = 456;
+            c = f(a,b);
+            use c;
+          `,
+          expected: {action: Action.Use, value: 579},
+        },
+      ],
+    },
+  ];
+
+  const globals = {
+    x: 123,
+    a: {b: {c: 1010}},
+    b: [1, 2, 3],
+    f: (a: number, b: number) => a + b,
+    g: (a: number, b: number) => ({a, b}),
+  };
+
+  for (const group of groups) {
+    describe(group.name, () => {
+      for (const {name, input, expected} of group.cases) {
+        it(name, async () => {
+          const {context, node, action} = await parse(input);
+          const combined = new Context(globals, context);
+          const value = await node.eval(combined);
+          const observed = {action, value};
           assert.deepEqual(observed, expected);
         });
       }

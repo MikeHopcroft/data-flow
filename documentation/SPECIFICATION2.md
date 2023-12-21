@@ -10,12 +10,11 @@ We describe a language whose syntax is an ***extremely limited subset of Javascr
 3. The language should be easy for human labelers to understand and author. It should be possible to use standard tooling for syntax highlighting, auto-completion, and schema validation.
 4. The language should be easy to implement.
 
-As mentioned above, we propose a language whose syntax is an ***extremely limited subset of Javascript syntax***.
-The semantics of the language differ from Javascript in two key ways: 
+As mentioned above, we propose a language whose syntax is an ***extremely limited subset of Javascript syntax***. The semantics of the language differ from Javascript in two key ways: 
 1. The details of asynchronous function invocation are implicit, thus releasing the LLM from the burden of specifying this behavior.
 2. Alias definitions, which use the syntax of variable assignment, are interpreted as defining a data-flow dependency graph for the `Plan`. The structure of this graph determines the maximal level of concurrancy available when evaluating a `Plan`. 
 
-This language is intended for scenarios where the LLM produces a `Plan`, which is then executed, with the results being forwarded to the next stage. The language can also be used in scenarios where the results are returned to the original LLM for further processing. For more information about this iterative scenario, see the [note pertaing to `use` vs `return`](#note-on-use-vs-return) later in this document.
+This language is intended for scenarios where the LLM produces a `Plan`, which is then executed, with the results being forwarded to the next stage. The language can also be used in scenarios where the results are returned to the original LLM for further processing. For more information about this iterative scenario, see the [note pertaining to the use vs return keywords](#note-on-use-vs-return) later in this document.
 
 ## Foundational Concepts
 
@@ -28,7 +27,7 @@ For this discussion, we will call these functions `AsyncFunctions`. Here's the T
 
 ~~~typescript
 // JSON Serializable.
-type Serializable = Obj | Primitive | Array<Serializable> | undefined;
+type Serializable = Obj | Primitive | Array<Serializable>;
 type Obj = {[key: string]: Serializable};
 type Primitive = boolean | number | string | undefined | null | Date;
 
@@ -37,9 +36,9 @@ type AsyncFunction<INPUT extends Serializable[], OUTPUT extends Serializable> = 
 ) => Promise<OUTPUT>;
 ~~~
 
-**A note about AsyncFunction parameters:** While the above definition allows `AsyncFunctions` to accept a list of parameters, it is a *convention* with many remote procudure calls (RPCs) to define endpoints that take a single JSON serializable object parameter. This design note takes no position on the arity of `AsyncFunctions` functions. Choosing an appropriate number of parameters is left to the user.
+**A note about AsyncFunction parameters:** While the above definition allows `AsyncFunctions` to accept a list of parameters, it is a *convention* with many remote procudure calls (RPCs) to define endpoints that take a single JSON serializable object parameter. This design note takes no position on the arity of `AsyncFunctions`. Choosing an appropriate number of parameters is left to the user.
 
-**A note about Slots:** Some uses may adopt the _convention_ that the parameter is a flat property bag of named `Slots`. This design note takes no position on the shape of the parameter and the concept of `Slots`. Choosing whether to organize the parameter around `Slots` is left as a decision for the users.
+**A note about Slots:** Some uses may adopt the _convention_ that the parameter is a flat property bag of named `Slots`. This design note takes no position on the shape of the parameter and the concept of `Slots`. Choosing whether to organize the parameter around `Slots` is left as a decision for the user.
 
 ### Synchronous Functions
 Parameter shaping and staging may involve calls to synchronous helper functions. One example is a function that helps perform date math for a concept like "next Tuesday" relative to some datetime value.
@@ -82,8 +81,9 @@ The language syntax is a strict subset of Javascript with support for the follow
   * Integer numbers, e.g. 1, -2, +3
   * Boolean literals, e.g. `true`, `false`
   * Undefined literal, e.g. `undefined`
+  * Null literal, e.g. `null`
   * String literals
-    * Single and double quotes
+    * Single and double quoted strings
     * Limited escaping, e.g. \n, \t
   * Template literals, e.g. \`Hello ${name}`
 * Composite literals
@@ -94,13 +94,16 @@ The language syntax is a strict subset of Javascript with support for the follow
   * Array index, e.g. `a[b]`
   * Function application, e.g. `a(b,c)`
 * Alias definition, e.g. `a = 5;`
-* Alias reference/substitution, e.g. `return a;`
-* Return statement, e.g. `return 5`;
+* Alias reference/substitution, e.g. `a`
+* Return statement, e.g. `return 5;`
+* Use statement, e.g. `use 5;`
 * Comments, e.g. `/* comment */` and `// comment`
 
 We omit other Javascript concepts that are not considered essential for the primary goal of shaping return values from one function call for use as parameters to another function call.
 
 ### Grammar
+
+The grammar is a subset of the Javascript grammar:
 
 ~~~
 PROGRAM: (ALIAS_DEC)* 'return' EXPRESSION ';'
@@ -130,8 +133,6 @@ STRING: (subset of Javascript spec - too complex to reproduce here)
 TEMPLATE: (subset of Javascript spec - too complex to reproduce here)
 ~~~
 
-**QUESTION:** should there be support for `null`?
-
 ### Semantics of Aliases
 The value of a reference to an alias is the value of the expression associated with the alias. This expression is evaluated no more than once during the evaluation of a `Plan`. The result of the initial evaluation is memoized for use of by all references to the same alias. Note that an `alias` expression will only be evaluated if the `alias` is referenced by another expression that is also evaluated. The consequence here is that a `Plan` may contain orphaned alias definitions that are never evaluated.
 
@@ -142,23 +143,23 @@ Suppose we have a `Context` that provides access to three backend service stubs 
 
 ~~~typescript
 type ExampleContext1 = {
-  domainA: Domain<{slot1: string}, {field1: number}>;
-  domainB: Domain<{slot2: string}, {field2: string}[]>;
-  domainC: Domain<{slot3: number; slot4: string}, string>;
+  domainA: ({slot1: string}) => {field1: number};
+  domainB: ({slot2: string}) => {field2: string}[];
+  domainC: ({slot3: number; slot4: string}) => string;
 };
 ~~~
 
 With this context, evaluating a `Plan` like
 
 ~~~typescript
-return domainA('hello');
+return domainA({slot1: 'hello'});
 ~~~
 
 would be equivalent to the following Javascript code:
 
 ~~~typescript
 async function plan(context: Context) {
-  return await context.domainA('hello');
+  return await context.domainA({slot1: 'hello'});
 }
 ~~~
 
@@ -171,7 +172,7 @@ return domainC({
   slot4: domainB({slot2: 'bar'})[0].field2,
 });
 ~~~
-might result in the execution of the following code:
+might result in the execution code with the following semantics:
 
 ~~~typescript
 async function plan(context: ExampleContext1) {
@@ -275,7 +276,7 @@ next(Thursday).at('9:00am');
 last(Tuesday).plus(23, day).at('9:00am');
 ~~~
 
-**A note on date math:** There is some debate about whether LLMs can perform date math. Even if LLMs can perform date math, we may still benefit from convenience functions when deriving new dates from those returned from a service call. `SyncFunctions` are the only option for date math in scenarios that don't pass results back to the originating LLM for further processing (see [note on use vs return](#note-on-use-vs-return)).
+**A note on date math:** There is some debate about whether LLMs can perform date math. Even if LLMs can perform date math, we may still benefit from convenience functions when deriving new dates from those returned from a service call. `SyncFunctions` are the only option for date math in scenarios that don't pass results back to the originating LLM for further processing (see [note on use vs return keywords](#note-on-use-vs-return)).
 
 ## Discussion
 
@@ -306,8 +307,9 @@ Any scenario that involves executing code generated by an LLM creates the potent
 With this in mind, implementations should emphasize a defense-in-depth approach. Some considerations follow:
 * It would be unwise to rely on Javascript's eval function, as this exposes the entire capability of Javascript.
 * Running Javascript in a sandbox is not enough. Many sandboxes have vulnerabilities and there may be cases where the values returned from the sandbox are able to cause unintended behavior inside the host environment.
-* To decrease the surface area of attacks, it probably makes sense to limit parameter names used in object literals and by the dot operator to disallow special names like `__prototype__` and `toString` and anything that is not an `own` property. This is a challenging problem because it is hard to get a definative list of special properties. One might also consider basing the implementation on a dictionary type like the JavaScript Map, instead of relying on objects. The nice thing about the dictionary is that it only contains the symbols that the evaluator stored.
-* It may be beneficial to restrict functions to only reside values bound in the `Context`. This restriction would prevent functions from being passed as parameters or stored in data structures that are returned from an evaluation.
+* To decrease the surface area of attacks, it probably makes sense to limit parameter names used in object literals and by the dot operator to disallow special names like `__prototype__` and `toString` and anything that is not an `own` property. This is a challenging problem because it is hard to get a definative list of special properties. One might also consider basing the implementation on a dictionary type like the JavaScript Map, instead of relying on native Javascript objects. The nice thing about the dictionary is that it only contains the symbols that the evaluator stored.
+* It may be beneficial to restrict functions to only reside in values bound in the `Context`. This restriction would prevent functions from being passed as parameters or stored in data structures that are returned from an evaluation.
+* It may be beneficial to serialize/deserialize data structures moved across sandbox boundaries.
 
 ## Note on Use vs Return
 This approach can be extended for iterative scenarios, where the result of the `Plan` evaluation is returned to the original LLM for further processing. One way to do this is to add a `use` keyword that is a counterpart to the `return` keyword.
@@ -323,7 +325,7 @@ This section describes an alternative approach (`Plan2`) that has some character
 
 This approach is a hybrid, combining a serialization format like YAML of JSON with JavaScript template literal expressions for some values.
 
-Here the elements of the `Plan2` data structure are analogous to nodes the parse tree of the JavaScript `Plan`.
+Here the elements of the `Plan2` data structure are analogous to nodes of the parse tree of the JavaScript `Plan`.
 
 The main differences are
 1. `Plan2` embraces the convention that `AsynFunctions`, which it calls `Domains`, take a single parameter which is a property bag of named `Slots`. Each `Slot` is an array of `TemplateLiterals` that can include Javscript expressions involving identifiers from the evaluation context.

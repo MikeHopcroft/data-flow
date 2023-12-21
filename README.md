@@ -4,7 +4,7 @@ The purpose of this project is to explore ways in which a Large Language Model (
 
 The syntax is an ***extremely limited subset of Javascript syntax***, relating mainly to the staging of function parameters, invoking functions, and reshaping return values in order to pass them to other functions. 
 
-Here's an example use case in travel booking. Consider the following user utterance:
+Here's an example use case related to travel booking. Consider the following user utterance:
 
 *"Find me rental car options for a trip I'm planning for 10/10 through the 15th. My flights are United 5117 outboud, returning on flight 5030."*
 
@@ -35,7 +35,7 @@ While the syntax is a strict subset of Javascript, the semantics of the language
 2. Alias definitions, which use the syntax of variable assignment, are interpreted as defining a data-flow dependency graph for the `Plan`. The structure of this graph determines the maximal level of concurrancy available when evaluating a `Plan`. 
 
 
-There is more information about the data-flow representation in the [specification](./documentation/SPECIFICATION2.md).
+There is more information about the data-flow representation in the [specification document](./documentation/SPECIFICATION2.md).
 
 This repo contains a number of sample applications to demonstrate the functionality:
 

@@ -1,5 +1,6 @@
 * README.md
 * YAML to JS converter
+* Serialize ASTNode to source code
 * Allow trailing comma in object literals
 * Allow empty element in array literals (undefined)
 * Compare

@@ -1,12 +1,14 @@
 * README.md
 * YAML to JS converter
+* Allow trailing comma in object literals
+* Allow empty element in array literals (undefined)
 * Compare
   * resolve() - looks up and replaces aliases
   * compare() - distance metric for two AST trees
     * . lodash deep compare of objects - checked with Chai's assert.deepEqual()
   * analyze() - information about functions and slots
 * x Remove old lib folder and unit tests. Rename lib2.
-* Tokenizer
+* x Tokenizer
   * x Reuse RE from safe getter
   * x Other escape codes in strings
   * x Undefined and null

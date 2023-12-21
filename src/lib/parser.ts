@@ -1,168 +1,385 @@
-import {Token, TokenType, tokenize} from './lexer';
 import {
-  ConcatenationNode,
-  DotNode,
-  ExpressionNode,
-  FunctionNode,
-  NodeType,
-} from './node';
-import {PeekableSequence} from './peekable-sequence';
+  alt,
+  apply,
+  expectEOF,
+  expectSingleResult,
+  kleft,
+  kmid,
+  kright,
+  list_sc,
+  opt,
+  opt_sc,
+  rep_sc,
+  rule,
+  seq,
+  tok,
+  Token,
+} from 'typescript-parsec';
+import unescape from 'unescape-js';
 
-export function parse(src: string): ConcatenationNode {
-  const tokenization = tokenize(src);
-  const children: ExpressionNode[] = tokenization.map(t => {
-    if (typeof t === 'string') {
-      return {type: NodeType.STRING, value: t};
-    } else {
-      const parser = new Parser(t);
-      return parser.parse();
-    }
-  });
-  return {type: NodeType.CONCATENATION, children};
+import {
+  ASTDot,
+  ASTFunction,
+  ASTIndex,
+  ASTLiteral,
+  ASTObject,
+  ASTReference,
+  ASTTemplate,
+  ASTTuple,
+} from './ast-nodes';
+import {saferGet} from './context';
+import {ErrorCode, ErrorEx} from './errors';
+import {ASTNode} from './interfaces';
+import {createLexer, TokenKind} from './lexer';
+
+// ALIAS_DEC = Identifier Equals EXPR
+//
+// LIST = EXPR [Comma EXPR]*
+//
+// TUPLE = LBracket LIST RBracket
+//
+// BINDING = IDENTIFIER Colon EXRP
+// BINDING_LIST = BINDING [Comma BINDING]*
+// OBJECT = LBRACE BINDING_LIST? RBRACE
+//
+// FUNCTION_CALL = Identifier LParen LIST RParen
+//
+// LITERAL_EXPR =
+//   Boolean
+//   Number
+//   String
+//   undefined
+//   null
+//   TUPLE
+//   OBJECT
+//
+// DOT_EXPR =
+//
+// ARRAY_INDEX
+//
+// PROGRAM = VARDEC* (USE | RETURN)
+//
+// USE = Use EXPR
+// RETURN = Return EXPR
+//
+// EXPR2 =
+//   DOT_EXPR
+//   ARRAY_INDEX
+//   EXPR
+//
+// EXPR =
+//   LITERAL_EXPR
+//   FUNCTION_CALL
+//   IDENTIFIER
+
+function applyBoolean(value: Token<TokenKind.Boolean>): ASTLiteral<boolean> {
+  return new ASTLiteral(value.text === 'true', value.pos);
 }
 
-export enum ParseErrorCode {
-  EXPECTED_COMMA,
-  EXPECTED_CLOSING_PAREN,
-  EXPECTED_COMMA_OR_CLOSING_PAREN,
-  EXPECTED_DOT_OR_FUNCTION,
-  EXPECTED_EXPRESSION,
-  EXPECTED_IDENTIFIER,
-  UNEXPECTED_CHARS_AFTER_EXPRESSION,
+function applyNumber(value: Token<TokenKind.Number>): ASTLiteral<number> {
+  return new ASTLiteral(Number(value.text), value.pos);
 }
 
-const parseErrorStrings = [
-  'Expected comma (,)',
-  'Expected closing paren.',
-  'Expected comma or closing paren',
-  'Expected dot (.) or function.',
-  'Expected expression.',
-  'Expected identifier.',
-  'Unexpected characters after expression',
-];
+function applyString(value: Token<TokenKind.String>): ASTLiteral<string> {
+  return new ASTLiteral(unescape(value.text.slice(1, -1)), value.pos);
+}
 
-export class ParseError extends Error {
-  code: ParseErrorCode;
+function applyUndefined(
+  value: Token<TokenKind.Undefined>
+): ASTLiteral<undefined> {
+  return new ASTLiteral(undefined, value.pos);
+}
 
-  constructor(code: ParseErrorCode, message?: string) {
-    super(message || parseErrorStrings[code]);
-    this.code = code;
+function applyNull(value: Token<TokenKind.Null>): ASTLiteral<null> {
+  return new ASTLiteral(null, value.pos);
+}
+
+type TokenRange = [Token<TokenKind> | undefined, Token<TokenKind> | undefined];
+
+type Binding = {key: string; value: ASTNode<unknown>};
+
+function applyBinding([key, value]: [
+  Token<TokenKind.Identifier>,
+  ASTNode<unknown>
+]): Binding {
+  return {key: key.text, value};
+}
+
+function applyObject(
+  bindings: Binding[] | undefined,
+  tokenRange: TokenRange
+): ASTNode<unknown> {
+  // TODO: sort out position
+  // TODO: tokenRange can be undefined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result: Record<string, ASTNode<any>> = {};
+  for (const {key, value} of bindings || []) {
+    // Validate property name while checking for duplicate keys.
+    if (saferGet(result, key)) {
+      throw new ErrorEx(ErrorCode.DUPLICATE_KEY, `Duplicate key "${key}".`);
+    }
+    result[key] = value;
+  }
+  return new ASTObject(result, tokenRange[0]!.pos);
+}
+
+function applyTuple(
+  value: ASTNode<unknown>[] | undefined,
+  tokenRange: TokenRange
+): ASTTuple<unknown[]> {
+  // TODO: sort out position
+  // TODO: tokenRange can be undefined
+  return new ASTTuple(value ?? [], tokenRange[0]!.pos);
+}
+
+function applyIdentifier(value: Token<TokenKind.Identifier>): ASTReference {
+  return new ASTReference(value.text, value.pos);
+}
+
+function applyTemplate(
+  value: Token<
+    | TokenKind.TemplateComplete
+    | TokenKind.TemplateLeft
+    | TokenKind.TemplateMiddle
+    | TokenKind.TemplateRight
+  >
+): ASTNode<string> {
+  if (
+    value.kind === TokenKind.TemplateComplete ||
+    value.kind === TokenKind.TemplateRight
+  ) {
+    return new ASTLiteral(value.text.slice(1, -1), value.pos);
+  } else {
+    return new ASTLiteral(value.text.slice(1, -2), value.pos);
   }
 }
 
-export class Parser {
-  cursor: PeekableSequence<Token>;
+function applyTemplate2(
+  [left, first, middle, right]: [
+    ASTNode<string>,
+    ASTNode<unknown>,
+    [ASTNode<string>, ASTNode<unknown>][] | undefined,
+    ASTNode<string>
+  ],
+  tokenRange: TokenRange
+): ASTTemplate {
+  const elements = [left, first, ...(middle || []), right].flat();
+  return new ASTTemplate(elements, tokenRange[0]!.pos);
+}
+function applyArrayIndex(
+  [array, index]: [ASTNode<unknown>, ASTNode<unknown>],
+  tokenRange: TokenRange
+) {
+  return new ASTIndex(array, index, tokenRange[0]!.pos);
+}
 
-  constructor(tokens: Token[]) {
-    this.cursor = new PeekableSequence(tokens.values());
-  }
+function applyDot(
+  [parent, first, rest]: [
+    ASTNode<unknown>,
+    Token<TokenKind.Identifier>,
+    Token<TokenKind.Identifier>[]
+  ],
+  tokenRange: TokenRange
+): ASTNode<unknown> {
+  const path = [first, ...rest];
+  const result = path.reduce(
+    (accumulator: ASTNode<unknown>, current: Token<TokenKind.Identifier>) => {
+      return new ASTDot(
+        accumulator,
+        new ASTReference(current.text, tokenRange[0]!.pos),
+        tokenRange[0]!.pos
+      );
+    },
+    parent
+  );
 
-  parse(): ExpressionNode {
-    const result = this.parse1();
-    if (!this.cursor.atEOS()) {
-      throw new ParseError(ParseErrorCode.UNEXPECTED_CHARS_AFTER_EXPRESSION);
+  return result;
+}
+
+function applyFunction(
+  [symbol, params]: [
+    Token<TokenKind.Identifier>,
+    ASTNode<unknown>[] | undefined
+  ],
+  tokenRange: TokenRange
+): ASTFunction<unknown[]> {
+  return new ASTFunction(
+    new ASTReference(symbol.text, tokenRange[0]!.pos),
+    params || [],
+    tokenRange[0]!.pos
+  );
+}
+
+export enum Action {
+  Use,
+  Return,
+}
+
+export type Program = {
+  context: Record<string, ASTNode<unknown>>;
+  node: ASTNode<unknown>;
+  action: Action;
+};
+
+function applyProgram([aliases, token, node]: [
+  Binding[],
+  Token<TokenKind.Return> | Token<TokenKind.Use>,
+  ASTNode<unknown>
+]): Program {
+  const context: Record<string, ASTNode<unknown>> = {};
+  for (const {key, value} of aliases) {
+    // Validate property name while checking for duplicate keys.
+    if (saferGet(context, key)) {
+      throw new ErrorEx(ErrorCode.DUPLICATE_KEY, `Duplicate key "${key}".`);
     }
-    return result;
+    context[key] = value;
   }
+  return {
+    context,
+    node,
+    action: token.kind === TokenKind.Return ? Action.Return : Action.Use,
+  };
+}
 
-  parse1(): ExpressionNode {
-    if (this.cursor.atEOS()) {
-      throw new ParseError(ParseErrorCode.EXPECTED_EXPRESSION);
-    }
+const ALIAS_DEC = rule<TokenKind, Binding>();
+const ARRAY_INDEX_EXPR = rule<TokenKind, ASTNode<unknown[]>>();
+const BINDING = rule<TokenKind, Binding>();
+const DOT_EXPR = rule<TokenKind, ASTNode<unknown>>();
+const EXPR = rule<TokenKind, ASTNode<unknown>>();
+const EXPR2 = rule<TokenKind, ASTNode<unknown>>();
+const FUNCTION_CALL = rule<TokenKind, ASTNode<unknown>>();
+const IDENTIFIER = rule<TokenKind, ASTNode<unknown>>();
+const LITERAL_EXPR = rule<TokenKind, ASTNode<unknown>>();
+const OBJECT = rule<TokenKind, ASTNode<unknown>>();
+const PROGRAM = rule<TokenKind, Program>();
+const TEMPLATE_LITERAL = rule<TokenKind, ASTNode<string>>();
+const TUPLE = rule<TokenKind, ASTNode<unknown>>();
 
-    const t = this.peek();
-    if (t.type === TokenType.NUMBER) {
-      this.get();
-      return {type: NodeType.NUMBER, value: t.value};
-    } else if (t.type === TokenType.WORD) {
-      this.get();
-      const parent = {type: NodeType.IDENTIFIER, name: t.text} as const;
-      return this.parse2(parent);
-    } else {
-      throw new ParseError(ParseErrorCode.EXPECTED_EXPRESSION);
-    }
-  }
+PROGRAM.setPattern(
+  apply(
+    seq(
+      rep_sc(ALIAS_DEC),
+      alt(tok(TokenKind.Use), tok(TokenKind.Return)),
+      kleft(EXPR, opt(tok(TokenKind.Semicolon)))
+    ),
+    applyProgram
+  )
+);
 
-  parse2(current: ExpressionNode): ExpressionNode {
-    while (!this.cursor.atEOS()) {
-      const next = this.peek();
-      if (next.type === TokenType.DELIMETER) {
-        if (next.text === '(') {
-          current = this.parseFunction(current);
-        } else if (next.text === '.') {
-          current = this.parseDot(current);
-        } else {
-          // This is either `,` or `)`, so end parsing at this level.
-          break;
-        }
-      } else {
-        throw new ParseError(ParseErrorCode.UNEXPECTED_CHARS_AFTER_EXPRESSION);
-      }
-    }
-    return current;
-  }
+ALIAS_DEC.setPattern(
+  apply(
+    seq(
+      tok(TokenKind.Identifier),
+      kmid(tok(TokenKind.Equals), EXPR2, opt(tok(TokenKind.Semicolon)))
+    ),
+    applyBinding
+  )
+);
 
-  parseDot(parent: ExpressionNode): DotNode {
-    // Take the dot.
-    this.get();
-    if (this.cursor.atEOS()) {
-      throw new ParseError(ParseErrorCode.EXPECTED_IDENTIFIER);
-    }
-    const t = this.get();
-    if (t.type !== TokenType.WORD) {
-      throw new ParseError(ParseErrorCode.EXPECTED_IDENTIFIER);
-    }
-    const child = {type: NodeType.IDENTIFIER, name: t.text} as const;
-    return {type: NodeType.DOT, parent, child};
-  }
+EXPR2.setPattern(alt(DOT_EXPR, ARRAY_INDEX_EXPR, EXPR));
 
-  parseFunction(func: ExpressionNode): FunctionNode {
-    const params: ExpressionNode[] = [];
+DOT_EXPR.setPattern(
+  apply(
+    seq(
+      EXPR,
+      kright(tok(TokenKind.Dot), tok(TokenKind.Identifier)),
+      rep_sc(kright(tok(TokenKind.Dot), tok(TokenKind.Identifier)))
+    ),
+    applyDot
+  )
+);
 
-    // Take the opening paren.
-    this.get();
+ARRAY_INDEX_EXPR.setPattern(
+  apply(
+    seq(EXPR, kmid(tok(TokenKind.LBracket), EXPR2, tok(TokenKind.RBracket))),
+    applyArrayIndex
+  )
+);
 
-    if (!this.cursor.atEOS()) {
-      const t1 = this.peek();
-      if (t1.type !== TokenType.DELIMETER || t1.text !== ')') {
-        params.push(this.parse1());
+EXPR.setPattern(alt(LITERAL_EXPR, FUNCTION_CALL, IDENTIFIER, TEMPLATE_LITERAL));
 
-        while (!this.cursor.atEOS()) {
-          if (this.nextIs(')')) {
-            break;
-          }
-          if (!this.nextIs(',')) {
-            throw new ParseError(ParseErrorCode.EXPECTED_COMMA);
-          }
-          // Take the comma.
-          this.get();
+IDENTIFIER.setPattern(apply(tok(TokenKind.Identifier), applyIdentifier));
 
-          // Parse the next parameter.
-          params.push(this.parse1());
-        }
-      }
-    }
-    if (!this.nextIs(')')) {
-      throw new ParseError(ParseErrorCode.EXPECTED_CLOSING_PAREN);
-    }
-    // Take the closing paren.
-    this.get();
-    return {type: NodeType.FUNCTION, func, params};
-  }
+LITERAL_EXPR.setPattern(
+  alt(
+    apply(tok(TokenKind.Number), applyNumber),
+    apply(tok(TokenKind.String), applyString),
+    apply(tok(TokenKind.Boolean), applyBoolean),
+    apply(tok(TokenKind.Undefined), applyUndefined),
+    apply(tok(TokenKind.Null), applyNull),
+    OBJECT,
+    TUPLE
+  )
+);
 
-  get(): Token {
-    return this.cursor.get();
-  }
+TEMPLATE_LITERAL.setPattern(
+  alt(
+    apply(tok(TokenKind.TemplateComplete), applyTemplate),
+    apply(
+      seq(
+        apply(tok(TokenKind.TemplateLeft), applyTemplate),
+        EXPR2,
+        opt_sc(
+          rep_sc(
+            seq(apply(tok(TokenKind.TemplateMiddle), applyTemplate), EXPR2)
+          )
+        ),
+        apply(tok(TokenKind.TemplateRight), applyTemplate)
+      ),
+      applyTemplate2
+    )
+  )
+);
 
-  peek(): Token {
-    return this.cursor.peek();
-  }
+FUNCTION_CALL.setPattern(
+  apply(
+    seq(
+      tok(TokenKind.Identifier),
+      kmid(
+        tok(TokenKind.LParen),
+        opt(list_sc(EXPR2, tok(TokenKind.Comma))),
+        tok(TokenKind.RParen)
+      )
+    ),
+    applyFunction
+  )
+);
 
-  nextIs(char: string): boolean {
-    if (this.cursor.atEOS()) {
-      return false;
-    }
-    const t = this.peek();
-    return t.type === TokenType.DELIMETER && t.text === char;
-  }
+OBJECT.setPattern(
+  apply(
+    kmid(
+      tok(TokenKind.LBrace),
+      opt(list_sc(BINDING, tok(TokenKind.Comma))),
+      tok(TokenKind.RBrace)
+    ),
+    applyObject
+  )
+);
+
+BINDING.setPattern(
+  apply(
+    seq(tok(TokenKind.Identifier), kright(tok(TokenKind.Colon), EXPR2)),
+    applyBinding
+  )
+);
+
+TUPLE.setPattern(
+  apply(
+    kmid(
+      tok(TokenKind.LBracket),
+      opt(list_sc(EXPR2, tok(TokenKind.Comma))),
+      tok(TokenKind.RBracket)
+    ),
+    applyTuple
+  )
+);
+
+export function parseExpression(text: string): ASTNode<unknown> {
+  const lexer = createLexer();
+  return expectSingleResult(expectEOF(EXPR2.parse(lexer.parse(text))));
+}
+
+export function parse(text: string): Program {
+  const lexer = createLexer();
+  return expectSingleResult(expectEOF(PROGRAM.parse(lexer.parse(text))));
 }

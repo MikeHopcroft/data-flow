@@ -1,257 +1,249 @@
 import {assert} from 'chai';
+import dedent from 'dedent';
 import 'mocha';
 
 import {
-  evaluate,
-  ExpressionNode,
-  NodeType,
+  ASTLiteral,
+  Action,
+  Context,
   parse,
-  ParseError,
-  ParseErrorCode,
-  Parser,
-  Token,
-  tokenize,
+  parseExpression,
 } from '../../src/lib';
+import {TokenPosition} from 'typescript-parsec';
+
+type Group = {name: string; cases: Case[]};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Case = {name: string; input: string; expected: any};
 
 describe('Parser', () => {
-  describe('Basic expressions', () => {
-    const cases: {name: string; src: string; expected: ExpressionNode}[] = [
-      {
-        name: 'positive number',
-        src: '${+4}',
-        expected: {
-          type: NodeType.NUMBER,
-          value: 4,
+  const groups: Group[] = [
+    {
+      name: 'Primitives',
+      cases: [
+        {name: 'boolean - true', input: 'true', expected: true},
+        {name: 'boolean - false', input: 'false', expected: false},
+        {name: 'number - basic', input: '123.456', expected: 123.456},
+        {name: 'number - positive', input: '+456', expected: 456},
+        {name: 'number - negative', input: '-789', expected: -789},
+        {name: 'number - decimal', input: '.789', expected: 0.789},
+        {name: 'number - negative exponent', input: '123e-4', expected: 123e-4},
+        {
+          name: 'number - positive exponent',
+          input: '-1.234e+5',
+          expected: -1.234e5,
         },
-      },
-      {
-        name: 'negative number',
-        src: '${-53}',
-        expected: {
-          type: NodeType.NUMBER,
-          value: -53,
+        {
+          name: 'string - double quote',
+          input: '"Hello, \\" world"',
+          expected: 'Hello, " world',
         },
-      },
-      {
-        name: 'plain number',
-        src: '${123}',
-        expected: {
-          type: NodeType.NUMBER,
-          value: 123,
+        {
+          name: 'string - single quote',
+          input: "'Hello, \\' world'",
+          expected: "Hello, ' world",
         },
-      },
-      {
-        name: 'identifier',
-        src: '${abc}',
-        expected: {
-          type: NodeType.IDENTIFIER,
-          name: 'abc',
+        {
+          name: 'string - escape characters',
+          input: "'Hello, \\'\\n world'",
+          expected: "Hello, '\n world",
         },
-      },
-      {
-        name: 'dot',
-        src: '${a.b}',
-        expected: {
-          type: NodeType.DOT,
-          parent: {
-            type: NodeType.IDENTIFIER,
-            name: 'a',
-          },
-          child: {
-            type: NodeType.IDENTIFIER,
-            name: 'b',
-          },
-        },
-      },
-      {
-        name: 'function - 0 parameters',
-        src: '${a()}',
-        expected: {
-          type: NodeType.FUNCTION,
-          func: {
-            type: NodeType.IDENTIFIER,
-            name: 'a',
-          },
-          params: [],
-        },
-      },
-      {
-        name: 'function - 1 numeric parameter',
-        src: '${a(123)}',
-        expected: {
-          type: NodeType.FUNCTION,
-          func: {
-            type: NodeType.IDENTIFIER,
-            name: 'a',
-          },
-          params: [
-            {
-              type: NodeType.NUMBER,
-              value: 123,
-            },
-          ],
-        },
-      },
-      {
-        name: 'function - 1 label parameter',
-        src: '${a(b)}',
-        expected: {
-          type: NodeType.FUNCTION,
-          func: {
-            type: NodeType.IDENTIFIER,
-            name: 'a',
-          },
-          params: [
-            {
-              type: NodeType.IDENTIFIER,
-              name: 'b',
-            },
-          ],
-        },
-      },
-      {
-        name: 'complex',
-        src: '${a.b(1).c}',
-        expected: {
-          type: 1,
-          parent: {
-            type: 2,
-            func: {
-              type: 1,
-              parent: {
-                type: 3,
-                name: 'a',
-              },
-              child: {
-                type: 3,
-                name: 'b',
-              },
-            },
-            params: [
-              {
-                type: NodeType.NUMBER,
-                value: 1,
-              },
-            ],
-          },
-          child: {
-            type: 3,
-            name: 'c',
-          },
-        },
-      },
-    ];
-    for (const {name, src, expected} of cases) {
-      it(name, () => {
-        const tokenization = tokenize(src);
-        const parser = new Parser(tokenization[0] as Token[]);
-        const observed = parser.parse();
-        assert.deepEqual(observed, expected);
-      });
-    }
-  });
+        // TODO: other character escape sequences
+        {name: 'undefined', input: 'undefined', expected: undefined},
+        {name: 'null', input: 'null', expected: null},
 
-  describe('Errors', () => {
-    const cases: {name: string; src: string; expected: ParseErrorCode}[] = [
-      {
-        name: 'empty',
-        src: '${}',
-        expected: ParseErrorCode.EXPECTED_EXPRESSION,
-      },
-      {
-        name: 'comma',
-        src: '${,}',
-        expected: ParseErrorCode.EXPECTED_EXPRESSION,
-      },
-      {
-        name: 'unexpected chars after number',
-        src: '${1a}',
-        expected: ParseErrorCode.UNEXPECTED_CHARS_AFTER_EXPRESSION,
-      },
-      {
-        name: 'unexpected chars after dot expression',
-        src: '${a.b,}',
-        expected: ParseErrorCode.UNEXPECTED_CHARS_AFTER_EXPRESSION,
-      },
-      {
-        name: 'missing parameter',
-        src: '${a(1,)}',
-        expected: ParseErrorCode.EXPECTED_EXPRESSION,
-      },
-      {
-        name: 'missing paren',
-        src: '${a(1,2}',
-        expected: ParseErrorCode.EXPECTED_CLOSING_PAREN,
-      },
-      {
-        name: 'indentifier identifier',
-        src: '${a b}',
-        expected: ParseErrorCode.UNEXPECTED_CHARS_AFTER_EXPRESSION,
-      },
-      {
-        name: 'indentifier.',
-        src: '${a.}',
-        expected: ParseErrorCode.EXPECTED_IDENTIFIER,
-      },
-      {
-        name: 'indentifier.number',
-        src: '${a.5}',
-        expected: ParseErrorCode.EXPECTED_IDENTIFIER,
-      },
-      {
-        name: 'function(identifier identifier)',
-        src: '${a(b c)}',
-        expected: ParseErrorCode.UNEXPECTED_CHARS_AFTER_EXPRESSION,
-        // TODO: Could we get this error from parse2 instead?
-        // expected: ParseErrorCode.EXPECTED_COMMA_OR_CLOSING_PAREN,
-      },
-    ];
-    for (const {name, src, expected} of cases) {
-      it(name, () => {
-        let ok = false;
-        try {
-          const tokenization = tokenize(src);
-          const parser = new Parser(tokenization[0] as Token[]);
-          parser.parse();
-        } catch (e) {
-          if (e instanceof ParseError) {
-            ok = true;
-            assert.equal(e.code, expected);
-          } else {
-            throw e;
-          }
-        } finally {
-          assert.isTrue(ok);
-        }
-      });
-    }
-  });
+        //
+        // Tuple literals
+        //
+        {name: 'tuple - empty', input: '[]', expected: []},
+        {
+          name: 'tuple - basic',
+          input: '[1, false, "hello"]',
+          expected: [1, false, 'hello'],
+        },
+        {
+          name: 'tuple - nested',
+          input: '[123, "hello", true, [false, [1]]]',
+          expected: [123, 'hello', true, [false, [1]]],
+        },
+        {
+          name: 'tuple - complex',
+          input: '[x, "hello", true, [a, [f(1000, 234)]]]',
+          expected: [123, 'hello', true, [{b: {c: 1010}}, [1234]]],
+        },
 
-  describe('String interpolations', () => {
-    const context = {
-      x: 456,
-      y: {z: 789},
+        //
+        // Object literals
+        //
+        {name: 'object - empty', input: '{}', expected: {}},
+        {name: 'object - one prop', input: '{a: 1}', expected: {a: 1}},
+        {
+          name: 'object - two props',
+          input: '{a: 1, b: true}',
+          expected: {a: 1, b: true},
+        },
+        {
+          name: 'object - nested',
+          input: '{a: 1, b:{c: "hello"}}',
+          expected: {a: 1, b: {c: 'hello'}},
+        },
+        {
+          name: 'object - complex',
+          input: '{a: g(5, 6), b:{c: "hello"}}',
+          expected: {a: {a: 5, b: 6}, b: {c: 'hello'}},
+        },
+      ],
+    },
+    {
+      name: 'Identifiers',
+      cases: [
+        {name: 'not alias', input: 'x', expected: 123},
+        {name: 'alias', input: 'y', expected: 456},
+      ],
+    },
+    {
+      name: 'Template literals',
+      cases: [
+        {name: 'degenerate', input: '`hello`', expected: 'hello'},
+        {
+          name: 'one expression',
+          input: '`hello ${123} times.`',
+          expected: 'hello 123 times.',
+        },
+        {
+          name: 'two expressions',
+          input: '`hello ${123} times. f(1,1)=${f(1,1)}!`',
+          expected: 'hello 123 times. f(1,1)=2!',
+        },
+      ],
+    },
+    {
+      name: 'Operators',
+      cases: [
+        {name: 'function call', input: 'f(1,2)', expected: 3},
+        {name: 'function call - complex', input: 'f(x,f(5, 2))', expected: 130},
+        {name: 'dot', input: 'a.b', expected: {c: 1010}},
+        {name: 'dot dot', input: 'a.b.c', expected: 1010},
+        {name: 'g(1,2).b', input: 'g(1,2).b', expected: 2},
+        {name: 'array index', input: 'b[1]', expected: 2},
+        {name: 'array index - complex', input: 'b[f(1,1)]', expected: 3},
+        {name: 'combination1', input: 'f(g(5,6).a,f(5, 2))', expected: 12},
+      ],
+    },
+  ];
+
+  const position: TokenPosition = {
+    index: 0,
+    rowBegin: 0,
+    columnBegin: 0,
+    rowEnd: 0,
+    columnEnd: 0,
+  };
+
+  const context = new Context(
+    {
+      x: 123,
+      a: {b: {c: 1010}},
+      b: [1, 2, 3],
       f: (a: number, b: number) => a + b,
+      g: (a: number, b: number) => ({a, b}),
+    },
+    {y: new ASTLiteral(456, position)}
+  );
+
+  for (const group of groups) {
+    describe(group.name, () => {
+      for (const {name, input, expected} of group.cases) {
+        it(name, async () => {
+          const observed = await parseExpression(input).eval(context);
+          assert.deepEqual(observed, expected);
+        });
+      }
+    });
+  }
+
+  describe('Program', () => {
+    const groups: Group[] = [
+      {
+        name: 'Return',
+        cases: [
+          {
+            name: 'No aliases',
+            input: 'return 123;',
+            expected: {action: Action.Return, value: 123},
+          },
+          {
+            name: 'Alias chain',
+            input: dedent`
+              a = 123;
+              b = 456;
+              c = f(a,b);
+              return c;
+            `,
+            expected: {action: Action.Return, value: 579},
+          },
+        ],
+      },
+      {
+        name: 'Use',
+        cases: [
+          {
+            name: 'No aliases',
+            input: 'use 123;',
+            expected: {action: Action.Use, value: 123},
+          },
+          {
+            name: 'Alias chain',
+            input: dedent`
+              a = 123;
+              b = 456;
+              c = f(a,b);
+              use c;
+            `,
+            expected: {action: Action.Use, value: 579},
+          },
+        ],
+      },
+      {
+        name: 'Return - no semicolons',
+        cases: [
+          {
+            name: 'No aliases',
+            input: 'return 123',
+            expected: {action: Action.Return, value: 123},
+          },
+          {
+            name: 'Alias chain',
+            input: dedent`
+              a = 123
+              b = 456
+              c = f(a,b)
+              return c
+            `,
+            expected: {action: Action.Return, value: 579},
+          },
+        ],
+      },
+    ];
+
+    const globals = {
+      x: 123,
+      a: {b: {c: 1010}},
+      b: [1, 2, 3],
+      f: (a: number, b: number) => a + b,
+      g: (a: number, b: number) => ({a, b}),
     };
 
-    const cases: {name: string; src: string; expected: string}[] = [
-      {
-        name: 'general',
-        src: 'abc${+4}def',
-        expected: 'abc4def',
-      },
-      {
-        name: 'complex',
-        src: 'abc: ${x} def ${y.z} ${f(1,x)}',
-        expected: 'abc: 456 def 789 457',
-      },
-    ];
-    for (const {name, src, expected} of cases) {
-      it(name, () => {
-        const expression = parse(src);
-        const observed = evaluate(context, expression);
-        // console.log(JSON.stringify(observed, null, 2));
-        assert.equal(observed, expected);
+    for (const group of groups) {
+      describe(group.name, () => {
+        for (const {name, input, expected} of group.cases) {
+          it(name, async () => {
+            const {context, node, action} = await parse(input);
+            const combined = new Context(globals, context);
+            const value = await node.eval(combined);
+            const observed = {action, value};
+            assert.deepEqual(observed, expected);
+          });
+        }
       });
     }
   });

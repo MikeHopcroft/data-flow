@@ -1,5 +1,5 @@
 * README.md
-* Remove old lib folder and unit tests. Rename lib2.
+* x Remove old lib folder and unit tests. Rename lib2.
 * YAML converter
 * Compare
   * resolve() - looks up and replaces aliases

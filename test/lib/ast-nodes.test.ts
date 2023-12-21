@@ -16,7 +16,7 @@ import {
   ErrorCode,
   ErrorEx,
   Value,
-} from '../../src/lib2';
+} from '../../src/lib';
 
 const contextValues = {
   x: 456,

@@ -89,6 +89,14 @@ describe('Lexer', () => {
           {kind: TokenKind.Boolean, text: 'false'},
         ],
       },
+      {
+        name: 'comment - /* */',
+        input: '1 /* comment 5\n */false',
+        expected: [
+          {kind: TokenKind.Number, text: '1'},
+          {kind: TokenKind.Boolean, text: 'false'},
+        ],
+      },
       // TODO: comment /* */
       {
         name: 'template literal - degenerate',

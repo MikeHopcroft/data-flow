@@ -15,6 +15,7 @@ import {
   tok,
   Token,
 } from 'typescript-parsec';
+import unescape from 'unescape-js';
 
 import {
   ASTDot,
@@ -80,7 +81,7 @@ function applyNumber(value: Token<TokenKind.Number>): ASTLiteral<number> {
 }
 
 function applyString(value: Token<TokenKind.String>): ASTLiteral<string> {
-  return new ASTLiteral(value.text.slice(1, -1), value.pos);
+  return new ASTLiteral(unescape(value.text.slice(1, -1)), value.pos);
 }
 
 function applyUndefined(

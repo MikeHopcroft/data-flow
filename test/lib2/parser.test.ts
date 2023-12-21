@@ -35,12 +35,17 @@ describe('Parser2', () => {
         {
           name: 'string - double quote',
           input: '"Hello, \\" world"',
-          expected: 'Hello, \\" world',
+          expected: 'Hello, " world',
         },
         {
           name: 'string - single quote',
           input: "'Hello, \\' world'",
-          expected: "Hello, \\' world",
+          expected: "Hello, ' world",
+        },
+        {
+          name: 'string - escape characters',
+          input: "'Hello, \\'\\n world'",
+          expected: "Hello, '\n world",
         },
         // TODO: other character escape sequences
         {name: 'undefined', input: 'undefined', expected: undefined},

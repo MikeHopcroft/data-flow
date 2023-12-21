@@ -1,14 +1,16 @@
-* . lodash deep compare of objects - checked with Chai's assert.deepEqual()
+* README.md
+* Remove old lib folder and unit tests. Rename lib2.
 * YAML converter
 * Compare
   * resolve() - looks up and replaces aliases
   * compare() - distance metric for two AST trees
+    * . lodash deep compare of objects - checked with Chai's assert.deepEqual()
   * analyze() - information about functions and slots
 * Tokenizer
-  * /* */ comments
-  * Other escape codes in strings
   * Reuse RE from safe getter
+  * x Other escape codes in strings
   * x Undefined and null
+  * x /* */ comments
   * x Scientific notation for numbers
   * x Escaped quotes in strings
   * x // comments

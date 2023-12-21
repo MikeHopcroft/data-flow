@@ -52,11 +52,10 @@ export function createLexer() {
     [true, /^;/g, TokenKind.Semicolon],
     [true, /^\./g, TokenKind.Dot],
     [true, /^=/g, TokenKind.Equals],
-    // TODO: /* */ comments, when not inside strings
     [false, /^\/\/[^\n]*/g, TokenKind.Comment],
+    [false, /^\/\*(?:[^*]|(?:(?!\*\/)\*))*\*\//g, TokenKind.Comment],
     [false, /^\s+/g, TokenKind.Space],
-    // Template literals
-    // TODO: escaped backticks
+    // TODO: escaped backticks in template literals
     [true, /^`(?:[^$`]|(?:(?!\${)\$))*`/g, TokenKind.TemplateComplete],
     [true, /^`(?:[^$`]|(?:(?!\${)\$))*\${/g, TokenKind.TemplateLeft],
     [true, /^}(?:[^$`]|(?:(?!\${)\$))*\${/g, TokenKind.TemplateMiddle],

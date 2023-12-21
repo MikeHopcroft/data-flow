@@ -5,6 +5,8 @@ export class Context implements IEvaluationContext {
   values: Record<string, unknown>;
   nodes: Record<string, ASTNode<unknown>>;
   cache = new Map<ASTNode<unknown>, unknown>();
+  active = new Set<ASTNode<unknown>>();
+  path: string[] = [];
 
   constructor(
     values: Record<string, unknown>,
@@ -20,8 +22,22 @@ export class Context implements IEvaluationContext {
       if (this.cache.has(node)) {
         return {value: this.cache.get(node)};
       } else {
-        const value = node.eval(this);
-        this.cache.set(node, value);
+        if (this.active.has(node)) {
+          throw new ErrorEx(
+            ErrorCode.CYCLE_DETECTED,
+            `Cycle detected (path: ${this.path.join(' -> ')})`
+          );
+        }
+        let value: unknown;
+        try {
+          this.active.add(node);
+          this.path.push(name);
+          value = node.eval(this);
+          this.cache.set(node, value);
+        } finally {
+          this.path.pop();
+          this.active.delete(node);
+        }
         return {value};
       }
     }

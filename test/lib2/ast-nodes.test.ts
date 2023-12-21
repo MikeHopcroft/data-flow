@@ -291,71 +291,30 @@ describe('ASTNode', () => {
     assert.deepEqual(observed, expected);
   });
 
-  // describe('String interpolation', () => {
-  //   const context = {
-  //     x: 456,
-  //     y: {z: 789},
-  //     f: (a: number, b: number) => a + b,
-  //   };
+  it('Cycle detected', async () => {
+    const context2 = new Context(
+      {},
+      {
+        a: new ASTReference('b', position),
+        b: new ASTReference('c', position),
+        c: new ASTReference('a', position),
+      }
+    );
 
-  //   const cases: {
-  //     name: string;
-  //     input: (StringNode | ExpressionNode)[];
-  //     expected: string;
-  //   }[] = [
-  //     {
-  //       name: 'empty',
-  //       input: [],
-  //       expected: '',
-  //     },
-  //     {
-  //       name: 'one string',
-  //       input: [{type: NodeType.STRING, value: 'hello'}],
-  //       expected: 'hello',
-  //     },
-  //     {
-  //       name: 'multiple strings',
-  //       input: [
-  //         {type: NodeType.STRING, value: 'hello'},
-  //         {type: NodeType.STRING, value: ', '},
-  //         {type: NodeType.STRING, value: 'world!'},
-  //       ],
-  //       expected: 'hello, world!',
-  //     },
-  //     {
-  //       name: 'expressions',
-  //       input: [
-  //         {type: NodeType.STRING, value: 'number: '},
-  //         {type: NodeType.NUMBER, value: 123},
-  //         {type: NodeType.STRING, value: ', dot: '},
-  //         {
-  //           type: NodeType.DOT,
-  //           parent: {type: NodeType.IDENTIFIER, name: 'y'},
-  //           child: {type: NodeType.IDENTIFIER, name: 'z'},
-  //         },
-  //         {type: NodeType.STRING, value: ', function: '},
-  //         {
-  //           type: NodeType.FUNCTION,
-  //           func: {type: NodeType.IDENTIFIER, name: 'f'},
-  //           params: [
-  //             {type: NodeType.NUMBER, value: 1},
-  //             {type: NodeType.NUMBER, value: 10},
-  //           ],
-  //         },
-  //         {type: NodeType.STRING, value: ', end'},
-  //       ],
-  //       expected: 'number: 123, dot: 789, function: 11, end',
-  //     },
-  //   ];
+    const root = new ASTReference('a', position);
 
-  //   for (const {name, input, expected} of cases) {
-  //     it(name, () => {
-  //       const observed = evaluate(context, {
-  //         type: NodeType.CONCATENATION,
-  //         children: input,
-  //       });
-  //       assert.deepEqual(observed, expected);
-  //     });
-  //   }
-  // });
+    let ok = false;
+    try {
+      await root.eval(context2);
+    } catch (e) {
+      if (e instanceof ErrorEx) {
+        ok = true;
+        assert.equal(e.code, ErrorCode.CYCLE_DETECTED);
+      } else {
+        throw e;
+      }
+    } finally {
+      assert.isTrue(ok);
+    }
+  });
 });

@@ -1,4 +1,4 @@
-* Check for cycles
+* x Check for cycles
 * Optional semicolons after ALIAS_DEC, RETURN, USE
 * Literals
   * x object

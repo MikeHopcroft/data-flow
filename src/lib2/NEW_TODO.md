@@ -1,6 +1,5 @@
-* Safe property set and duplicate key check in OBJECT literal, PROGRAM
-* Optional semicolons after ALIAS_DEC, RETURN, USE
 * Check for cycles
+* Optional semicolons after ALIAS_DEC, RETURN, USE
 * Literals
   * x object
   * undefined
@@ -9,28 +8,30 @@
   * x dot
   * x []
 * . lodash deep compare of objects - checked with Chai's assert.deepEqual()
-* Structure
-  * vardecs
-  * return
-  * use
+* x Structure
+  * x vardecs
+  * x return
+  * x use
 * Runtime type checking
   * Funtion arity matches parameter list
 * Tokenizer
-  * Scientific notation for numbers
+  * Unefined and null
   * /* */ comments
   * Other escape codes in strings
-  * Unefined and null
   * Reuse RE from safe getter
+  * x Scientific notation for numbers
   * x Escaped quotes in strings
   * x // comments
   * x String interpolation parts
     * x No expression
     * x One expression
     * x Multiple expressions
+* YAML converter
 * Compare
   * resolve() - looks up and replaces aliases
   * compare() - distance metric for two AST trees
   * analyze() - information about functions and slots
+* x Safe property set and duplicate key check in OBJECT literal, PROGRAM
 * x Memoizing
   * x Are nodes memoized in place inside of ASTNodes?
   * x Can the same node be evaluated in two different Contexts?

@@ -29,7 +29,9 @@ export enum TokenKind {
 export function createLexer() {
   const lexer = buildLexer([
     // TODO: handle, e.g. E+09
-    [true, /^[+-]?\d+(\.\d+)?/g, TokenKind.Number],
+    // ^[-+]?\d*\.?\d*(\d+[eE][-+]?)?\d+$
+    [true, /^[-+]?\d*\.?\d*(\d+[eE][-+]?)?\d+/g, TokenKind.Number],
+    // [true, /^[+-]?\d+(\.\d+)?/g, TokenKind.Number],
     // TODO: single quotes, escaped quotes, other escapes
     [true, /^"([^"\\]|\\[\s\S])*"/g, TokenKind.String],
     [true, /^'([^'\\]|\\[\s\S])*'/g, TokenKind.String],

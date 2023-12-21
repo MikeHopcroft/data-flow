@@ -11,16 +11,29 @@ describe('Lexer', () => {
       expected: {kind: TokenKind; text: string}[];
     }[] = [
       {
-        name: 'primitives',
-        input: '  +1.23 -456 789 true false id',
+        name: 'numbers',
+        input: '1 +2 -3 .345 4.56e-9 .567e+51',
         expected: [
-          {kind: TokenKind.Number, text: '+1.23'},
-          {kind: TokenKind.Number, text: '-456'},
-          {kind: TokenKind.Number, text: '789'},
+          {kind: TokenKind.Number, text: '1'},
+          {kind: TokenKind.Number, text: '+2'},
+          {kind: TokenKind.Number, text: '-3'},
+          {kind: TokenKind.Number, text: '.345'},
+          {kind: TokenKind.Number, text: '4.56e-9'},
+          {kind: TokenKind.Number, text: '.567e+51'},
+        ],
+      },
+      {
+        name: 'booleans',
+        input: '  true false ',
+        expected: [
           {kind: TokenKind.Boolean, text: 'true'},
           {kind: TokenKind.Boolean, text: 'false'},
-          {kind: TokenKind.Identifier, text: 'id'},
         ],
+      },
+      {
+        name: 'identifer',
+        input: '   id  ',
+        expected: [{kind: TokenKind.Identifier, text: 'id'}],
       },
       {
         name: 'double quote string literal',

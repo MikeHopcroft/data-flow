@@ -1,5 +1,7 @@
 import {buildLexer} from 'typescript-parsec';
 
+import {identifierReForLexer} from './context';
+
 export enum TokenKind {
   Number,
   String,
@@ -39,8 +41,7 @@ export function createLexer() {
     [true, /^null/g, TokenKind.Null],
     [true, /^use/g, TokenKind.Use],
     [true, /^return/g, TokenKind.Return],
-    // TODO: reused RE for safe property accessor
-    [true, /^[a-zA-Z_]+[a-zA-Z_0-9]*/g, TokenKind.Identifier],
+    [true, identifierReForLexer, TokenKind.Identifier],
     [true, /^{/g, TokenKind.LBrace],
     [true, /^}/g, TokenKind.RBrace],
     [true, /^\[/g, TokenKind.LBracket],

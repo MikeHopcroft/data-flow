@@ -65,6 +65,10 @@ export class Context implements IEvaluationContext {
   }
 }
 
+const identiferReSource = '^[a-zA-Z][a-zA-Z0-9_]*';
+export const identifierReForLexer = new RegExp(identiferReSource, 'g');
+const identifierReForSafeGet = new RegExp(identiferReSource + '$');
+
 // The goal here is to reduce opportunities for  injection attacks to access
 // properties other than those intended. This includes fields like __proto__
 // and toString.
@@ -74,7 +78,7 @@ export function saferGet<T extends Record<keyof T, any>>(
   context: Record<keyof T, any>,
   name: keyof T
 ) {
-  if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(name as string)) {
+  if (!identifierReForSafeGet.test(name as string)) {
     throw new ErrorEx(
       ErrorCode.ILLEGAL_IDENTIFIER,
       `Illegal property name "${name as string}".`

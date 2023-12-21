@@ -198,6 +198,26 @@ describe('Program', () => {
         },
       ],
     },
+    {
+      name: 'Return - no semicolons',
+      cases: [
+        {
+          name: 'No aliases',
+          input: 'return 123',
+          expected: {action: Action.Return, value: 123},
+        },
+        {
+          name: 'Alias chain',
+          input: dedent`
+            a = 123
+            b = 456
+            c = f(a,b)
+            return c
+          `,
+          expected: {action: Action.Return, value: 579},
+        },
+      ],
+    },
   ];
 
   const globals = {

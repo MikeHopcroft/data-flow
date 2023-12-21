@@ -247,7 +247,7 @@ PROGRAM.setPattern(
     seq(
       rep_sc(ALIAS_DEC),
       alt(tok(TokenKind.Use), tok(TokenKind.Return)),
-      kleft(EXPR, tok(TokenKind.Semicolon))
+      kleft(EXPR, opt(tok(TokenKind.Semicolon)))
     ),
     applyProgram
   )
@@ -257,7 +257,7 @@ ALIAS_DEC.setPattern(
   apply(
     seq(
       tok(TokenKind.Identifier),
-      kmid(tok(TokenKind.Equals), EXPR2, tok(TokenKind.Semicolon))
+      kmid(tok(TokenKind.Equals), EXPR2, opt(tok(TokenKind.Semicolon)))
     ),
     applyBinding
   )

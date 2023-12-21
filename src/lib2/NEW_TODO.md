@@ -1,5 +1,5 @@
 * x Check for cycles
-* Optional semicolons after ALIAS_DEC, RETURN, USE
+* x Optional semicolons after ALIAS_DEC, RETURN, USE
 * Literals
   * x object
   * undefined

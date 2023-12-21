@@ -36,6 +36,16 @@ describe('Lexer', () => {
         expected: [{kind: TokenKind.Identifier, text: 'id'}],
       },
       {
+        name: 'undefined',
+        input: '   undefined  ',
+        expected: [{kind: TokenKind.Undefined, text: 'undefined'}],
+      },
+      {
+        name: 'null',
+        input: '   null  ',
+        expected: [{kind: TokenKind.Null, text: 'null'}],
+      },
+      {
         name: 'double quote string literal',
         input: '  " hi there \\" \\n 1 true [](),=\' "  ',
         expected: [

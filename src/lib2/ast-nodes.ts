@@ -18,7 +18,13 @@ type MapAST2<T extends Record<string, unknown>> = {
 //
 ///////////////////////////////////////////////////////////////////////////////
 type FunctionValue = (...params: unknown[]) => Promise<unknown>;
-export type Literal = string | number | boolean | FunctionValue | undefined;
+export type Literal =
+  | string
+  | number
+  | boolean
+  | FunctionValue
+  | undefined
+  | null;
 
 export class ASTLiteral<T extends Literal> implements ASTNode<T> {
   position: TokenPosition;

@@ -1,24 +1,14 @@
-* x Check for cycles
-* x Optional semicolons after ALIAS_DEC, RETURN, USE
-* Literals
-  * x object
-  * undefined
-  * null
-* Operators
-  * x dot
-  * x []
 * . lodash deep compare of objects - checked with Chai's assert.deepEqual()
-* x Structure
-  * x vardecs
-  * x return
-  * x use
-* Runtime type checking
-  * Funtion arity matches parameter list
+* YAML converter
+* Compare
+  * resolve() - looks up and replaces aliases
+  * compare() - distance metric for two AST trees
+  * analyze() - information about functions and slots
 * Tokenizer
-  * Unefined and null
   * /* */ comments
   * Other escape codes in strings
   * Reuse RE from safe getter
+  * x Undefined and null
   * x Scientific notation for numbers
   * x Escaped quotes in strings
   * x // comments
@@ -26,11 +16,21 @@
     * x No expression
     * x One expression
     * x Multiple expressions
-* YAML converter
-* Compare
-  * resolve() - looks up and replaces aliases
-  * compare() - distance metric for two AST trees
-  * analyze() - information about functions and slots
+* Runtime type checking
+  * Funtion arity matches parameter list
+* x Check for cycles
+* x Optional semicolons after ALIAS_DEC, RETURN, USE
+* x Literals
+  * x object
+  * x undefined
+  * x null
+* x Operators
+  * x dot
+  * x []
+* x Structure
+  * x vardecs
+  * x return
+  * x use
 * x Safe property set and duplicate key check in OBJECT literal, PROGRAM
 * x Memoizing
   * x Are nodes memoized in place inside of ASTNodes?

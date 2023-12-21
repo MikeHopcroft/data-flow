@@ -47,6 +47,8 @@ import {createLexer, TokenKind} from './lexer';
 //   Boolean
 //   Number
 //   String
+//   undefined
+//   null
 //   TUPLE
 //   OBJECT
 //
@@ -79,6 +81,16 @@ function applyNumber(value: Token<TokenKind.Number>): ASTLiteral<number> {
 
 function applyString(value: Token<TokenKind.String>): ASTLiteral<string> {
   return new ASTLiteral(value.text.slice(1, -1), value.pos);
+}
+
+function applyUndefined(
+  value: Token<TokenKind.Undefined>
+): ASTLiteral<undefined> {
+  return new ASTLiteral(undefined, value.pos);
+}
+
+function applyNull(value: Token<TokenKind.Null>): ASTLiteral<null> {
+  return new ASTLiteral(null, value.pos);
 }
 
 type TokenRange = [Token<TokenKind> | undefined, Token<TokenKind> | undefined];
@@ -292,6 +304,8 @@ LITERAL_EXPR.setPattern(
     apply(tok(TokenKind.Number), applyNumber),
     apply(tok(TokenKind.String), applyString),
     apply(tok(TokenKind.Boolean), applyBoolean),
+    apply(tok(TokenKind.Undefined), applyUndefined),
+    apply(tok(TokenKind.Null), applyNull),
     OBJECT,
     TUPLE
   )

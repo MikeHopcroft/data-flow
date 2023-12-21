@@ -4,6 +4,8 @@ export enum TokenKind {
   Number,
   String,
   Boolean,
+  Undefined,
+  Null,
   Use,
   Return,
   Identifier,
@@ -28,15 +30,13 @@ export enum TokenKind {
 
 export function createLexer() {
   const lexer = buildLexer([
-    // TODO: handle, e.g. E+09
-    // ^[-+]?\d*\.?\d*(\d+[eE][-+]?)?\d+$
     [true, /^[-+]?\d*\.?\d*(\d+[eE][-+]?)?\d+/g, TokenKind.Number],
-    // [true, /^[+-]?\d+(\.\d+)?/g, TokenKind.Number],
-    // TODO: single quotes, escaped quotes, other escapes
+    // TODO: other string literal character escapes
     [true, /^"([^"\\]|\\[\s\S])*"/g, TokenKind.String],
     [true, /^'([^'\\]|\\[\s\S])*'/g, TokenKind.String],
     [true, /^(true|false)/g, TokenKind.Boolean],
-    // TODO: undefined and null
+    [true, /^undefined/g, TokenKind.Undefined],
+    [true, /^null/g, TokenKind.Null],
     [true, /^use/g, TokenKind.Use],
     [true, /^return/g, TokenKind.Return],
     // TODO: reused RE for safe property accessor
@@ -56,6 +56,7 @@ export function createLexer() {
     [false, /^\/\/[^\n]*/g, TokenKind.Comment],
     [false, /^\s+/g, TokenKind.Space],
     // Template literals
+    // TODO: escaped backticks
     [true, /^`(?:[^$`]|(?:(?!\${)\$))*`/g, TokenKind.TemplateComplete],
     [true, /^`(?:[^$`]|(?:(?!\${)\$))*\${/g, TokenKind.TemplateLeft],
     [true, /^}(?:[^$`]|(?:(?!\${)\$))*\${/g, TokenKind.TemplateMiddle],

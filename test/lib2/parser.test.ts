@@ -20,12 +20,18 @@ describe('Parser2', () => {
     {
       name: 'Primitives',
       cases: [
-        {name: 'boolean true', input: 'true', expected: true},
-        {name: 'boolean false', input: 'false', expected: false},
+        {name: 'boolean - true', input: 'true', expected: true},
+        {name: 'boolean - false', input: 'false', expected: false},
         {name: 'number - basic', input: '123.456', expected: 123.456},
         {name: 'number - positive', input: '+456', expected: 456},
         {name: 'number - negative', input: '-789', expected: -789},
-        // TODO: scientific notation
+        {name: 'number - decimal', input: '.789', expected: 0.789},
+        {name: 'number - negative exponent', input: '123e-4', expected: 123e-4},
+        {
+          name: 'number - positive exponent',
+          input: '-1.234e+5',
+          expected: -1.234e5,
+        },
         {
           name: 'string - double quote',
           input: '"Hello, \\" world"',
@@ -37,6 +43,8 @@ describe('Parser2', () => {
           expected: "Hello, \\' world",
         },
         // TODO: other character escape sequences
+        {name: 'undefined', input: 'undefined', expected: undefined},
+        {name: 'null', input: 'null', expected: null},
 
         //
         // Tuple literals

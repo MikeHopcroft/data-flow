@@ -22,6 +22,8 @@
   "devDependencies": {
     "@types/chai": "^4.3.11",
     "@types/js-yaml": "^4.0.9",
+    "@types/jsesc": "^3.0.3",
+    "@types/lodash": "^4.14.202",
     "@types/mocha": "^10.0.6",
     "@types/node": "^14.11.2",
     "@types/unescape-js": "^1.0.2",
@@ -33,6 +35,8 @@
   },
   "dependencies": {
     "js-yaml": "^4.1.0",
+    "jsesc": "^3.0.2",
+    "lodash": "^4.17.21",
     "typescript-parsec": "^0.3.4",
     "unescape-js": "^1.1.4"
   }

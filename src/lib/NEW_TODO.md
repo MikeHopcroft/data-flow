@@ -1,8 +1,39 @@
+* New
+  * Approved functions + ZOD
+  * Canonicalize aliases with hashes
+  * Detect unresolved (orphaned) aliases.
+  * BUG? cycle detection in resolve
+  * Metrics
+    * (text,token)X(edit,rouge)x(source vs resolved)
+    * Text diff
+    * Token diff
+    * Text RougeL
+    * Token RougeL
+    * Tree diff
+  * BUG? Context.eval can return undefined value for undefined ASTNode.
+    * Not a bug because an undefined node field means no node.
+    * What about undefined value?
+  * x BUG? Memoization of resolve
+  * Tree ops
+    * Immer
+    * Resolve
+    * Function statistics
+    * Serialize + tokenize + diff
+    * Compare
+  * Repl demo
+  * x AST resolver
+  * AST walker
+    * For resolving copy - traversal
+    * For accumulating function call info - simple map w/dedupe
+    * For comparing two plans - 
+  * Analysis tools
+    * Function call and slot extractor
 * README.md
 * YAML to JS converter
 * Serialize ASTNode to source code
 * Allow trailing comma in object literals
 * Allow empty element in array literals (undefined)
+* Define object literal property and value with ASTReference providing property name and value
 * Compare
   * resolve() - looks up and replaces aliases
   * compare() - distance metric for two AST trees

@@ -242,7 +242,7 @@ function applyProgram([aliases, token, node]: [
 }
 
 const ALIAS_DEC = rule<TokenKind, Binding>();
-const ARRAY_INDEX_EXPR = rule<TokenKind, ASTNode<unknown[]>>();
+const ARRAY_INDEX_EXPR = rule<TokenKind, ASTNode<unknown>>();
 const BINDING = rule<TokenKind, Binding>();
 const DOT_EXPR = rule<TokenKind, ASTNode<unknown>>();
 const EXPR = rule<TokenKind, ASTNode<unknown>>();

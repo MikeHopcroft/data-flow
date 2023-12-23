@@ -4,6 +4,7 @@ import {ASTNode, IEvaluationContext} from './interfaces';
 export class Context implements IEvaluationContext {
   values: Record<string, unknown>;
   nodes: Record<string, ASTNode<unknown>>;
+  resolved: Record<string, ASTNode<unknown>> = {};
   cache = new Map<ASTNode<unknown>, unknown>();
   active = new Set<ASTNode<unknown>>();
   path: string[] = [];
@@ -50,7 +51,16 @@ export class Context implements IEvaluationContext {
     return undefined;
   }
 
-  get(name: string): {value?: unknown; node?: ASTNode<unknown>} {
+  get(name: string): {
+    value?: unknown;
+    node?: ASTNode<unknown>;
+    resolved?: boolean;
+  } {
+    const resolvedNode = saferGet(this.resolved, name) as ASTNode<unknown>;
+    if (resolvedNode) {
+      return {node: resolvedNode, resolved: true};
+    }
+
     const node = saferGet(this.nodes, name) as ASTNode<unknown>;
     if (node) {
       return {node};
@@ -62,6 +72,17 @@ export class Context implements IEvaluationContext {
     }
 
     return {};
+  }
+
+  resolve(name: string, node: ASTNode<unknown>): void {
+    saferGet(this.nodes, name) as ASTNode<unknown>;
+    if (name in this.resolved) {
+      throw new ErrorEx(
+        ErrorCode.INTERNAL_ERROR,
+        `Key "${name}" has already been resolved.`
+      );
+    }
+    this.resolved[name] = node;
   }
 }
 

@@ -8,8 +8,13 @@ export type Obj = {[key: string]: Value};
 export type Arr = Array<Value>;
 
 export interface IEvaluationContext {
-  get(name: string): {value?: unknown; node?: ASTNode<unknown>};
+  get(name: string): {
+    value?: unknown;
+    node?: ASTNode<unknown>;
+    resolved?: boolean;
+  };
   eval(name: string): {value: unknown} | undefined;
+  resolve(name: string, node: ASTNode<unknown>): void;
 }
 
 export interface ASTNodeBase {
@@ -18,4 +23,9 @@ export interface ASTNodeBase {
 
 export interface ASTNode<T> extends ASTNodeBase {
   eval(context: IEvaluationContext): Promise<T>;
+  resolve(context: IEvaluationContext): ASTNode<T>;
+  serialize(): string;
+  // visit(visitor: Visitor<T>): ASTNode<T>;
 }
+
+export type Visitor<T> = (node: ASTNode<T>) => void;

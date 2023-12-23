@@ -1,4 +1,5 @@
 import {assert} from 'chai';
+import dedent from 'dedent';
 import 'mocha';
 import {TokenPosition} from 'typescript-parsec';
 
@@ -16,6 +17,7 @@ import {
   ErrorCode,
   ErrorEx,
   Value,
+  resolve,
 } from '../../src/lib';
 
 const contextValues = {
@@ -44,6 +46,14 @@ class MockASTNode implements ASTNode<number> {
 
   eval(): Promise<number> {
     return Promise.resolve(++this.evalCount);
+  }
+
+  serialize(): string {
+    return String(this.evalCount);
+  }
+
+  resolve(): ASTNode<number> {
+    return this;
   }
 }
 
@@ -315,6 +325,162 @@ describe('ASTNode', () => {
       }
     } finally {
       assert.isTrue(ok);
+    }
+  });
+
+  describe('Serialization', () => {
+    const cases: {name: string; input: ASTNode<unknown>; expected: string}[] = [
+      {
+        name: 'number literal',
+        input: new ASTLiteral(123, position),
+        expected: '123',
+      },
+      {
+        name: 'string literal',
+        input: new ASTLiteral('hello', position),
+        expected: "'hello'",
+      },
+      {
+        name: 'boolean literal',
+        input: new ASTLiteral(true, position),
+        expected: 'true',
+      },
+      {
+        name: 'undefined literal',
+        input: new ASTLiteral(undefined, position),
+        expected: 'undefined',
+      },
+      {
+        name: 'object literal',
+        input: new ASTObject(
+          {
+            a: new ASTLiteral(1, position),
+            b: new ASTLiteral(2, position),
+            c: new ASTLiteral(3, position),
+          },
+          position
+        ),
+        expected: '{a:1,b:2,c:3}',
+      },
+      {
+        name: 'tuple literal',
+        input: new ASTTuple(
+          [
+            new ASTLiteral(1, position),
+            new ASTLiteral(2, position),
+            new ASTLiteral(3, position),
+          ],
+          position
+        ),
+        expected: '[1,2,3]',
+      },
+      {
+        name: 'template literal',
+        input: new ASTTemplate(
+          [
+            new ASTLiteral('before ', position),
+            new ASTReference('a', position),
+            new ASTLiteral(' after', position),
+          ],
+          position
+        ),
+        expected: '`before ${a} after`',
+      },
+      {
+        name: 'identifier',
+        input: new ASTReference('x', position),
+        expected: 'x',
+      },
+      {
+        name: 'dot',
+        input: new ASTDot(
+          new ASTObject(
+            {
+              a: new ASTLiteral(1, position),
+              b: new ASTLiteral(2, position),
+              c: new ASTLiteral(3, position),
+            },
+            position
+          ),
+          new ASTReference('b', position),
+          position
+        ),
+        expected: '{a:1,b:2,c:3}.b',
+      },
+      {
+        name: 'dot dot',
+        input: new ASTDot(
+          new ASTDot(
+            new ASTObject(
+              {
+                a: new ASTObject({x: new ASTLiteral(123, position)}, position),
+                b: new ASTLiteral(2, position),
+                c: new ASTLiteral(3, position),
+              },
+              position
+            ),
+            new ASTReference('a', position),
+            position
+          ),
+          new ASTReference('x', position),
+          position
+        ),
+        expected: '{a:{x:123},b:2,c:3}.a.x',
+      },
+      {
+        name: 'array index',
+        input: new ASTIndex(
+          new ASTTuple(
+            [
+              new ASTLiteral(1, position),
+              new ASTLiteral(2, position),
+              new ASTLiteral(3, position),
+            ],
+            position
+          ),
+          new ASTLiteral(1, position),
+          position
+        ),
+        expected: '[1,2,3][1]',
+      },
+      {
+        name: 'function call',
+        input: new ASTFunction(
+          new ASTReference('f', position),
+          [new ASTLiteral(100, position), new ASTLiteral(10, position)],
+          position
+        ),
+        expected: 'f(100,10)',
+      },
+    ];
+
+    for (const {name, input, expected} of cases) {
+      it(name, () => {
+        const observed = input.serialize();
+        assert.equal(observed, expected);
+      });
+    }
+  });
+
+  describe('Resolve', () => {
+    const cases: {name: string; input: string; expected: string}[] = [
+      {
+        name: 'chaining',
+        input: dedent`
+          a = 1;
+          b = {x: a};
+          c = 2;
+          return f(b.x, c);
+        `,
+        expected: 'f({x:1}.x,2)',
+      },
+    ];
+
+    for (const {name, input, expected} of cases) {
+      it(name, async () => {
+        const observed = resolve(input).serialize();
+        assert.equal(observed, expected);
+      });
     }
   });
 });

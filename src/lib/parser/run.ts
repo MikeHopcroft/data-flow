@@ -1,7 +1,8 @@
 import z from 'zod';
 
+import {ASTNode, Function} from '../interfaces';
+
 import {Context} from './context';
-import {ASTNode, Function} from './interfaces';
 import {parse} from './parser';
 
 export async function run(

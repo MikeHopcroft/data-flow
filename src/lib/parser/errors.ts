@@ -1,5 +1,3 @@
-// import {ASTNodeBase} from './interfaces';
-
 export enum ErrorCode {
   // Lexical errors
   // Parse errors

@@ -1,9 +1,10 @@
 import jsesc from 'jsesc';
 import {TokenPosition} from 'typescript-parsec';
 
+import {ASTNode, Function, IEvaluationContext} from '../interfaces';
+
 import {saferGet} from './context';
 import {ErrorCode, ErrorEx} from './errors';
-import {ASTNode, Function, IEvaluationContext} from './interfaces';
 
 type MapAST<T extends readonly unknown[] | [] | Record<keyof T, unknown>> = {
   -readonly [P in keyof T]: ASTNode<T[P]>;

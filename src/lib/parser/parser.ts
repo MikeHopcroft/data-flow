@@ -17,6 +17,8 @@ import {
 } from 'typescript-parsec';
 import unescape from 'unescape-js';
 
+import {ASTNode} from '../interfaces';
+
 import {
   ASTDot,
   ASTFunction,
@@ -29,7 +31,6 @@ import {
 } from './ast-nodes';
 import {saferGet} from './context';
 import {ErrorCode, ErrorEx} from './errors';
-import {ASTNode} from './interfaces';
 import {createLexer, TokenKind} from './lexer';
 
 // ALIAS_DEC = Identifier Equals EXPR

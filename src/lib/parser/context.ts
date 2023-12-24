@@ -1,7 +1,8 @@
 import z from 'zod';
 
+import {ASTNode, Function, IEvaluationContext} from '../interfaces';
+
 import {ErrorCode, ErrorEx} from './errors';
-import {ASTNode, Function, IEvaluationContext} from './interfaces';
 
 type ContextOptions = {
   allowUnapprovedFunctions?: boolean;

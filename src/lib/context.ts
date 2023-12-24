@@ -1,20 +1,61 @@
+import z from 'zod';
+
 import {ErrorCode, ErrorEx} from './errors';
-import {ASTNode, IEvaluationContext} from './interfaces';
+import {ASTNode, Function, IEvaluationContext} from './interfaces';
+
+type ContextOptions = {
+  allowUnapprovedFunctions?: boolean;
+};
 
 export class Context implements IEvaluationContext {
+  // Global external symbols.
   values: Record<string, unknown>;
+
+  // List of approved functions.
+  approved: Map<Function, z.ZodType>;
+
+  // Internal referencces to aliased ASTNodes.
   nodes: Record<string, ASTNode<unknown>>;
+
+  options: ContextOptions;
+
+  // Cache of resolved ASTNodes.
   resolved: Record<string, ASTNode<unknown>> = {};
+
+  // Cache of evaluated ASTNodes.
   cache = new Map<ASTNode<unknown>, unknown>();
+
+  // Nodes that are active in the current evaluation chain.
+  // Used to detect cycles.
   active = new Set<ASTNode<unknown>>();
+
+  // Path of active nodes in the current evaluation chain.
+  // Used to format error messages for cycles.
   path: string[] = [];
 
-  constructor(
+  private constructor(
     values: Record<string, unknown>,
-    nodes: Record<string, ASTNode<unknown>>
+    approved: Map<Function, z.ZodType>,
+    nodes: Record<string, ASTNode<unknown>>,
+    options?: ContextOptions
   ) {
     this.values = values;
+    this.approved = approved;
     this.nodes = nodes;
+    this.options = options || {};
+  }
+
+  static create(
+    values: Record<string, unknown>,
+    approved: [Function, z.ZodType][] | undefined,
+    nodes: Record<string, ASTNode<unknown>>
+  ): Context {
+    const approvedMap = new Map<Function, z.ZodType>(approved || []);
+    return new Context(values, approvedMap, nodes);
+  }
+
+  derive(values: Record<string, unknown>): Context {
+    return new Context(values, this.approved, this.nodes);
   }
 
   eval(name: string): {value: unknown} | undefined {
@@ -83,6 +124,20 @@ export class Context implements IEvaluationContext {
       );
     }
     this.resolved[name] = node;
+  }
+
+  getParamsValidator(f: Function): z.ZodType {
+    let validator = this.approved.get(f);
+    if (!validator) {
+      if (!this.options.allowUnapprovedFunctions) {
+        throw new ErrorEx(
+          ErrorCode.UNAPPROVED_FUNCTION,
+          `Unapproved function: ${f.name}`
+        );
+      }
+      validator = z.any();
+    }
+    return validator;
   }
 }
 

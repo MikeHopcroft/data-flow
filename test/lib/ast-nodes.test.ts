@@ -2,6 +2,7 @@ import {assert} from 'chai';
 import dedent from 'dedent';
 import 'mocha';
 import {TokenPosition} from 'typescript-parsec';
+import z from 'zod';
 
 import {
   ASTDot,
@@ -25,8 +26,13 @@ const contextValues = {
   y: {z: 789},
   a: ['one', 'two', 'three'],
   f: (a: number, b: number) => a + b,
+  unapproved: (a: number, b: number) => a + b,
 };
-const context = new Context(contextValues, {});
+const context = Context.create(
+  contextValues,
+  [[contextValues.f, z.array(z.number(), z.number())]],
+  {}
+);
 
 const position: TokenPosition = {
   index: 0,
@@ -262,6 +268,24 @@ describe('ASTNode', () => {
         input: new ASTObject({toString: new ASTLiteral(1, position)}, position),
         expected: ErrorCode.INACCESSIBLE_PROPERTY,
       },
+      {
+        name: 'unapproved function',
+        input: new ASTFunction(
+          new ASTReference('unapproved', position),
+          [new ASTLiteral(1, position), new ASTLiteral(2, position)],
+          position
+        ),
+        expected: ErrorCode.UNAPPROVED_FUNCTION,
+      },
+      {
+        name: 'invalid function parameters',
+        input: new ASTFunction(
+          new ASTReference('f', position),
+          [new ASTLiteral(true, position), new ASTLiteral('hi', position)],
+          position
+        ),
+        expected: ErrorCode.INVALID_PARAMS,
+      },
     ];
 
     for (const {name, input, expected} of cases) {
@@ -284,12 +308,9 @@ describe('ASTNode', () => {
   });
 
   it('Memoization', async () => {
-    const context2 = new Context(
-      {},
-      {
-        f: new MockASTNode(position),
-      }
-    );
+    const context2 = Context.create({}, undefined, {
+      f: new MockASTNode(position),
+    });
 
     const root = new ASTTuple(
       [new ASTReference('f', position), new ASTReference('f', position)],
@@ -302,14 +323,11 @@ describe('ASTNode', () => {
   });
 
   it('Cycle detected', async () => {
-    const context2 = new Context(
-      {},
-      {
-        a: new ASTReference('b', position),
-        b: new ASTReference('c', position),
-        c: new ASTReference('a', position),
-      }
-    );
+    const context2 = Context.create({}, undefined, {
+      a: new ASTReference('b', position),
+      b: new ASTReference('c', position),
+      c: new ASTReference('a', position),
+    });
 
     const root = new ASTReference('a', position);
 

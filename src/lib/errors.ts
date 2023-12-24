@@ -9,10 +9,12 @@ export enum ErrorCode {
   ILLEGAL_IDENTIFIER,
   INACCESSIBLE_PROPERTY,
   INTERNAL_ERROR,
+  INVALID_PARAMS,
   EXPECTED_ARRAY,
   EXPECTED_ARRAY_INDEX,
   EXPECTED_FUNCTION,
   EXPECTED_OBJECT,
+  UNAPPROVED_FUNCTION,
   UNKNOWN_IDENTIFIER,
 }
 
@@ -25,10 +27,12 @@ const errorCodeToString = new Map([
   [ErrorCode.ILLEGAL_IDENTIFIER, 'Illegal identifier'],
   [ErrorCode.INACCESSIBLE_PROPERTY, 'Inaccessible property'],
   [ErrorCode.INTERNAL_ERROR, 'Internal error'],
+  [ErrorCode.INVALID_PARAMS, 'Invalid params'],
   [ErrorCode.EXPECTED_ARRAY, 'Expected an array'],
   [ErrorCode.EXPECTED_ARRAY_INDEX, 'Expected an array index'],
   [ErrorCode.EXPECTED_FUNCTION, 'Expected a function'],
   [ErrorCode.EXPECTED_OBJECT, 'Expected an object'],
+  [ErrorCode.UNAPPROVED_FUNCTION, 'Unapproved function'],
   [ErrorCode.UNKNOWN_IDENTIFIER, 'Unknown identifier'],
 ]);
 

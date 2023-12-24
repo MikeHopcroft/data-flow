@@ -1,9 +1,9 @@
 import jsesc from 'jsesc';
 import {TokenPosition} from 'typescript-parsec';
 
-import {Context, saferGet} from './context';
+import {saferGet} from './context';
 import {ErrorCode, ErrorEx} from './errors';
-import {ASTNode, IEvaluationContext} from './interfaces';
+import {ASTNode, Function, IEvaluationContext} from './interfaces';
 
 type MapAST<T extends readonly unknown[] | [] | Record<keyof T, unknown>> = {
   -readonly [P in keyof T]: ASTNode<T[P]>;
@@ -281,6 +281,11 @@ export class ASTFunction<P extends unknown[]> implements ASTNode<unknown> {
     if (typeof f !== 'function') {
       throw new ErrorEx(ErrorCode.EXPECTED_FUNCTION);
     }
+    const validator = context.getParamsValidator(f as Function);
+    const validation = validator.safeParse(params);
+    if (!validation.success) {
+      throw new ErrorEx(ErrorCode.INVALID_PARAMS, validation.error.message);
+    }
 
     return f(...params);
   }
@@ -332,7 +337,7 @@ export class ASTDot implements ASTNode<unknown> {
         'Left side of dot expression should be object.'
       );
     }
-    return this.child.eval(new Context(parent as Record<string, unknown>, {}));
+    return this.child.eval(context.derive(parent as Record<string, unknown>));
   }
 
   serialize(): string {

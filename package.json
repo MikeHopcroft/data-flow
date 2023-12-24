@@ -38,6 +38,7 @@
     "jsesc": "^3.0.2",
     "lodash": "^4.17.21",
     "typescript-parsec": "^0.3.4",
-    "unescape-js": "^1.1.4"
+    "unescape-js": "^1.1.4",
+    "zod": "^3.22.4"
   }
 }

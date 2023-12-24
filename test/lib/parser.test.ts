@@ -1,6 +1,7 @@
 import {assert} from 'chai';
 import dedent from 'dedent';
 import 'mocha';
+import z from 'zod';
 
 import {
   ASTLiteral,
@@ -139,14 +140,19 @@ describe('Parser', () => {
     columnEnd: 0,
   };
 
-  const context = new Context(
-    {
-      x: 123,
-      a: {b: {c: 1010}},
-      b: [1, 2, 3],
-      f: (a: number, b: number) => a + b,
-      g: (a: number, b: number) => ({a, b}),
-    },
+  const globals = {
+    x: 123,
+    a: {b: {c: 1010}},
+    b: [1, 2, 3],
+    f: (a: number, b: number) => a + b,
+    g: (a: number, b: number) => ({a, b}),
+  };
+  const context = Context.create(
+    globals,
+    [
+      [globals.f, z.array(z.number(), z.number())],
+      [globals.g, z.array(z.number(), z.number())],
+    ],
     {y: new ASTLiteral(456, position)}
   );
 
@@ -238,7 +244,14 @@ describe('Parser', () => {
         for (const {name, input, expected} of group.cases) {
           it(name, async () => {
             const {context, node, action} = await parse(input);
-            const combined = new Context(globals, context);
+            const combined = Context.create(
+              globals,
+              [
+                [globals.f, z.array(z.number(), z.number())],
+                [globals.g, z.array(z.number(), z.number())],
+              ],
+              context
+            );
             const value = await node.eval(combined);
             const observed = {action, value};
             assert.deepEqual(observed, expected);

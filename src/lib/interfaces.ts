@@ -1,19 +1,22 @@
 import {TokenPosition} from 'typescript-parsec';
+import z from 'zod';
 
 export type Primitive = boolean | number | string | undefined;
 export type Value = Arr | Obj | Primitive | Function;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Function = (...args: unknown[]) => Value;
+export type Function = (...args: any[]) => Value | Promise<Value>;
 export type Obj = {[key: string]: Value};
 export type Arr = Array<Value>;
 
 export interface IEvaluationContext {
+  derive(values: Record<string, unknown>): IEvaluationContext;
+  eval(name: string): {value: unknown} | undefined;
   get(name: string): {
     value?: unknown;
     node?: ASTNode<unknown>;
     resolved?: boolean;
   };
-  eval(name: string): {value: unknown} | undefined;
+  getParamsValidator(f: Function): z.ZodType;
   resolve(name: string, node: ASTNode<unknown>): void;
 }
 

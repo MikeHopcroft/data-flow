@@ -1,10 +1,11 @@
 * New
-  * Approved functions + ZOD
+  * Update top-level README.md
+  * BUG? cycle detection in resolve
+  * Warnings and errors stored in Program
   * Canonicalize aliases with hashes
   * Detect unresolved (orphaned) aliases.
-  * BUG? cycle detection in resolve
   * Metrics
-    * (text,token)X(edit,rouge)x(source vs resolved)
+    * (text,token)x(edit,rouge)x(source vs resolved)
     * Text diff
     * Token diff
     * Text RougeL
@@ -13,10 +14,12 @@
   * BUG? Context.eval can return undefined value for undefined ASTNode.
     * Not a bug because an undefined node field means no node.
     * What about undefined value?
+  * x Approved functions list
+  * x ZOD validation
   * x BUG? Memoization of resolve
   * Tree ops
     * Immer
-    * Resolve
+    * x Resolve
     * Function statistics
     * Serialize + tokenize + diff
     * Compare

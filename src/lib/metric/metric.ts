@@ -26,8 +26,10 @@ export function configure(
   const original = makeForm(encoding, text);
   try {
     const ast1 = parse(text);
-    const cannonical = makeForm(encoding, ast1.node.serialize());
-    const ast2 = ast1.node.resolve(Context.create({}, [], ast1.context));
+    const cannonical = makeForm(encoding, ast1.serialize());
+    const ast2 = ast1.resolve(Context.create({}, [], {}));
+    // const cannonical = makeForm(encoding, ast1.node.serialize());
+    // const ast2 = ast1.node.resolve(Context.create({}, [], ast1.context));
     const resolved = makeForm(encoding, ast2.serialize());
     return {succeeded: true, config: {original, cannonical, resolved}};
   } catch (e) {
@@ -105,7 +107,7 @@ export function compare(encoding: Tiktoken, a: string, b: string) {
     }
     return {aConfig, bConfig, results};
   }
-  throw 123;
+  return {aConfig, bConfig, results: []};
 }
 
 function editDistance<T extends string | number[]>(a: T, b: T) {

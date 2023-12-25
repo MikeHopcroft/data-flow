@@ -243,17 +243,17 @@ describe('Parser', () => {
       describe(group.name, () => {
         for (const {name, input, expected} of group.cases) {
           it(name, async () => {
-            const {context, node, action} = await parse(input);
-            const combined = Context.create(
+            const node = await parse(input);
+            const context = Context.create(
               globals,
               [
                 [globals.f, z.array(z.number(), z.number())],
                 [globals.g, z.array(z.number(), z.number())],
               ],
-              context
+              {}
             );
-            const value = await node.eval(combined);
-            const observed = {action, value};
+            const value = await node.eval(context);
+            const observed = {action: node.action, value};
             assert.deepEqual(observed, expected);
           });
         }

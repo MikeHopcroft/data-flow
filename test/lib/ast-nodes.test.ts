@@ -490,7 +490,7 @@ describe('ASTNode', () => {
           c = 2;
           return f(b.x, c);
         `,
-        expected: 'f({x:1}.x,2)',
+        expected: 'return f({x:1}.x,2);',
       },
     ];
 

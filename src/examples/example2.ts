@@ -8,7 +8,7 @@ function go() {
   const cases: {a: string; b: string}[] = [
     {a: 'return 123', b: 'return 123'},
     {a: 'return 123', b: 'return 456'},
-    {a: 'a = 123; return a', b: 'b = 123; return b'},
+    {a: ' a = 123;  return a', b: 'b = 123; return b'},
   ];
 
   for (const {a, b} of cases) {

@@ -55,8 +55,15 @@ export class Context implements IEvaluationContext {
     return new Context(values, approvedMap, nodes);
   }
 
-  derive(values: Record<string, unknown>): Context {
-    return new Context(values, this.approved, this.nodes);
+  derive(
+    values?: Record<string, unknown>,
+    locals?: Record<string, ASTNode<unknown>>
+  ): Context {
+    return new Context(
+      values || this.values,
+      this.approved,
+      locals || this.nodes
+    );
   }
 
   eval(name: string): {value: unknown} | undefined {

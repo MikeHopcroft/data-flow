@@ -20,11 +20,13 @@ import unescape from 'unescape-js';
 import {ASTNode} from '../interfaces';
 
 import {
+  Action,
   ASTDot,
   ASTFunction,
   ASTIndex,
   ASTLiteral,
   ASTObject,
+  ASTProgram,
   ASTReference,
   ASTTemplate,
   ASTTuple,
@@ -211,35 +213,28 @@ function applyFunction(
   );
 }
 
-export enum Action {
-  Use,
-  Return,
-}
-
-export type Program = {
-  context: Record<string, ASTNode<unknown>>;
-  node: ASTNode<unknown>;
-  action: Action;
-};
-
-function applyProgram([aliases, token, node]: [
-  Binding[],
-  Token<TokenKind.Return> | Token<TokenKind.Use>,
-  ASTNode<unknown>
-]): Program {
-  const context: Record<string, ASTNode<unknown>> = {};
+function applyProgram(
+  [aliases, token, root]: [
+    Binding[],
+    Token<TokenKind.Return> | Token<TokenKind.Use>,
+    ASTNode<unknown>
+  ],
+  tokenRange: TokenRange
+): ASTProgram {
+  const locals: Record<string, ASTNode<unknown>> = {};
   for (const {key, value} of aliases) {
     // Validate property name while checking for duplicate keys.
-    if (saferGet(context, key)) {
+    if (saferGet(locals, key)) {
       throw new ErrorEx(ErrorCode.DUPLICATE_KEY, `Duplicate key "${key}".`);
     }
-    context[key] = value;
+    locals[key] = value;
   }
-  return {
-    context,
-    node,
-    action: token.kind === TokenKind.Return ? Action.Return : Action.Use,
-  };
+  return new ASTProgram(
+    locals,
+    root,
+    token.kind === TokenKind.Return ? Action.Return : Action.Use,
+    tokenRange[0]!.pos
+  );
 }
 
 const ALIAS_DEC = rule<TokenKind, Binding>();
@@ -252,7 +247,7 @@ const FUNCTION_CALL = rule<TokenKind, ASTNode<unknown>>();
 const IDENTIFIER = rule<TokenKind, ASTNode<unknown>>();
 const LITERAL_EXPR = rule<TokenKind, ASTNode<unknown>>();
 const OBJECT = rule<TokenKind, ASTNode<unknown>>();
-const PROGRAM = rule<TokenKind, Program>();
+const PROGRAM = rule<TokenKind, ASTProgram>();
 const TEMPLATE_LITERAL = rule<TokenKind, ASTNode<string>>();
 const TUPLE = rule<TokenKind, ASTNode<unknown>>();
 
@@ -380,7 +375,7 @@ export function parseExpression(text: string): ASTNode<unknown> {
   return expectSingleResult(expectEOF(EXPR2.parse(lexer.parse(text))));
 }
 
-export function parse(text: string): Program {
+export function parse(text: string): ASTProgram {
   const lexer = createLexer();
   return expectSingleResult(expectEOF(PROGRAM.parse(lexer.parse(text))));
 }

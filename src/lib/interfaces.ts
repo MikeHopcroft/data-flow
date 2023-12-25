@@ -9,7 +9,10 @@ export type Obj = {[key: string]: Value};
 export type Arr = Array<Value>;
 
 export interface IEvaluationContext {
-  derive(values: Record<string, unknown>): IEvaluationContext;
+  derive(
+    values?: Record<string, unknown>,
+    locals?: Record<string, ASTNode<unknown>>
+  ): IEvaluationContext;
   eval(name: string): {value: unknown} | undefined;
   get(name: string): {
     value?: unknown;

@@ -406,6 +406,63 @@ export class ASTIndex implements ASTNode<unknown> {
 
 ///////////////////////////////////////////////////////////////////////////////
 //
+// ASTProgram
+//
+///////////////////////////////////////////////////////////////////////////////
+export enum Action {
+  Use,
+  Return,
+}
+
+export class ASTProgram implements ASTNode<unknown> {
+  locals: Record<string, ASTNode<unknown>>;
+  root: ASTNode<unknown>;
+  action: Action;
+  position: TokenPosition;
+
+  constructor(
+    locals: Record<string, ASTNode<unknown>>,
+    root: ASTNode<unknown>,
+    action: Action,
+    position: TokenPosition
+  ) {
+    this.locals = locals;
+    this.root = root;
+    this.action = action;
+    this.position = position;
+  }
+
+  eval(context: IEvaluationContext) {
+    const derived = context.derive(undefined, this.locals);
+    return this.root.eval(derived);
+  }
+
+  serialize(): string {
+    const keys = Object.getOwnPropertyNames(this.locals).sort();
+    const parts: string[] = [];
+    for (const key of keys) {
+      const value = saferGet(this.locals, key).serialize();
+      parts.push(`${key}=${value};`);
+    }
+    parts.push(
+      `${
+        this.action === Action.Return ? 'return' : 'use'
+      } ${this.root.serialize()};`
+    );
+    return parts.join('');
+  }
+
+  resolve(context: IEvaluationContext): ASTNode<unknown> {
+    const derived = context.derive(undefined, this.locals);
+    const root = this.root.resolve(derived);
+    return root === this.root
+      ? this
+      : new ASTProgram({}, root, this.action, this.position);
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//
 // Utility functions
 //
 ///////////////////////////////////////////////////////////////////////////////

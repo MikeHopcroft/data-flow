@@ -64,22 +64,25 @@ export function* forms() {
   }
 }
 
-export function formatConfiguration(config: Configuration): string {
+export function formatConfiguration(
+  indent: number,
+  config: Configuration
+): string {
+  const prefix = ' '.repeat(indent * 2);
   const parts: string[] = [];
-  parts.push('Original:');
-  formatForm(parts, config.original);
-  parts.push('Cannonical:');
-  formatForm(parts, config.cannonical);
-  parts.push('Resolved:');
-  formatForm(parts, config.resolved);
+  parts.push(prefix + 'Original:');
+  formatForm(indent + 1, parts, config.original);
+  parts.push(prefix + 'Cannonical:');
+  formatForm(indent + 1, parts, config.cannonical);
+  parts.push(prefix + 'Resolved:');
+  formatForm(indent + 1, parts, config.resolved);
   return parts.join('\n');
 }
 
-function formatForm(parts: string[], form: Form): void {
-  parts.push('  Text:');
-  parts.push('    ' + form.text);
-  parts.push('  Tokens:');
-  parts.push('    ' + form.tokens.join(', '));
+function formatForm(indent: number, parts: string[], form: Form): void {
+  const prefix = ' '.repeat(indent * 2);
+  parts.push(`${prefix}Text: ${form.text}`);
+  parts.push(`${prefix}Tokens: ${form.tokens.join(', ')}`);
 }
 
 // type Y<T> = {

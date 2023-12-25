@@ -7,7 +7,7 @@ async function go() {
   // We define the set of global symbols that can be referenced from
   // within an expression.
   const globals = {
-    // `` represents a number.
+    // `n` represents a number.
     n: 123,
 
     // `a()`, `b()`, and `c()` are async functions that sleep before

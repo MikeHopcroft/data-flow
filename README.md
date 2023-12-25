@@ -39,8 +39,8 @@ There is more information about the data-flow representation in the [specificati
 
 This repo contains a number of sample applications to demonstrate the functionality:
 
-* Sample1 - NOT YET IMPLEMENTED
-* Sample2 - NOT YET IMPLEMENTED
+* [Simple](src/examples/SIMPLE.md) - shows how to use the parser/evaluator
+* [Metrics](src/examples/METRICS.md) - demonstrates metrics for comparing expressions
 
 You can run these sample in GitHub Codespaces or you can clone the repo and build it locally. Instructions for both approaches follow.
 

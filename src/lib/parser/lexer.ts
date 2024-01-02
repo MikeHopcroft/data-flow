@@ -30,6 +30,34 @@ export enum TokenKind {
   TemplateRight,
 }
 
+export const tokenNames = [
+  'Number',
+  'String',
+  'Boolean',
+  'Undefined',
+  'Null',
+  'Use',
+  'Return',
+  'Identifier',
+  'LBrace',
+  'RBrace',
+  'LBracket',
+  'RBracket',
+  'LParen',
+  'RParen',
+  'Comma',
+  'Colon',
+  'Semicolon',
+  'Dot',
+  'Equals',
+  'Space',
+  'Comment',
+  'TemplateComplete',
+  'TemplateLeft',
+  'TemplateMiddle',
+  'TemplateRight',
+];
+
 export function createLexer() {
   const lexer = buildLexer([
     [true, /^[-+]?\d*\.?\d*(\d+[eE][-+]?)?\d+/g, TokenKind.Number],

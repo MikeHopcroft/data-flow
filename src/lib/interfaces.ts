@@ -31,7 +31,7 @@ export interface ASTNode<T> extends ASTNodeBase {
   eval(context: IEvaluationContext): Promise<T>;
   resolve(context: IEvaluationContext): ASTNode<T>;
   serialize(): string;
-  // visit(visitor: Visitor<T>): ASTNode<T>;
+  visit(visitor: Visitor): void;
 }
 
-export type Visitor<T> = (node: ASTNode<T>) => void;
+export type Visitor = (node: ASTNode<unknown>) => void;

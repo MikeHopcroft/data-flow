@@ -1,7 +1,7 @@
 import jsesc from 'jsesc';
 import {TokenPosition} from 'typescript-parsec';
 
-import {ASTNode, Function, IEvaluationContext} from '../interfaces';
+import {ASTNode, Function, IEvaluationContext, Visitor} from '../interfaces';
 
 import {saferGet} from './context';
 import {ErrorCode, ErrorEx} from './errors';
@@ -52,6 +52,10 @@ export class ASTLiteral<T extends Literal> implements ASTNode<T> {
   resolve(): ASTNode<T> {
     return this;
   }
+
+  visit(visitor: Visitor) {
+    visitor(this);
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,6 +104,13 @@ export class ASTTemplate implements ASTNode<string> {
       ? this
       : new ASTTemplate(elements, this.position);
   }
+
+  visit(visitor: Visitor): void {
+    visitor(this);
+    for (const element of this.elements) {
+      element.visit(visitor);
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -132,6 +143,13 @@ export class ASTTuple<P extends unknown[]> implements ASTNode<P> {
     return elements === this.elements
       ? this
       : new ASTTuple(elements, this.position);
+  }
+
+  visit(visitor: Visitor): void {
+    visitor(this);
+    for (const element of this.elements) {
+      element.visit(visitor);
+    }
   }
 }
 
@@ -206,6 +224,14 @@ export class ASTObject<X extends Record<keyof X, unknown>>
       return this;
     }
   }
+
+  visit(visitor: Visitor): void {
+    visitor(this);
+    for (const key of Object.getOwnPropertyNames(this.value)) {
+      const value = saferGet(this.value, key as keyof X) as ASTNode<unknown>;
+      value.visit(visitor);
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -249,6 +275,10 @@ export class ASTReference implements ASTNode<unknown> {
       return node;
     }
     return this;
+  }
+
+  visit(visitor: Visitor): void {
+    visitor(this);
   }
 }
 
@@ -304,6 +334,14 @@ export class ASTFunction<P extends unknown[]> implements ASTNode<unknown> {
       ? this
       : new ASTFunction(func, params, this.position);
   }
+
+  visit(visitor: Visitor): void {
+    visitor(this);
+    this.func.visit(visitor);
+    for (const param of this.params) {
+      param.visit(visitor);
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -351,6 +389,12 @@ export class ASTDot implements ASTNode<unknown> {
     return parent === this.parent && child === this.child
       ? this
       : new ASTDot(parent, child as ASTReference, this.position);
+  }
+
+  visit(visitor: Visitor): void {
+    visitor(this);
+    this.parent.visit(visitor);
+    this.child.visit(visitor);
   }
 }
 
@@ -401,6 +445,12 @@ export class ASTIndex implements ASTNode<unknown> {
     return array === this.array && index === this.index
       ? this
       : new ASTIndex(array, index, this.position);
+  }
+
+  visit(visitor: Visitor): void {
+    visitor(this);
+    this.array.visit(visitor);
+    this.index.visit(visitor);
   }
 }
 
@@ -458,6 +508,15 @@ export class ASTProgram implements ASTNode<unknown> {
     return root === this.root
       ? this
       : new ASTProgram({}, root, this.action, this.position);
+  }
+
+  visit(visitor: Visitor): void {
+    visitor(this);
+    this.root.visit(visitor);
+    for (const key of Object.getOwnPropertyNames(this.locals)) {
+      const value = saferGet(this.locals, key) as ASTNode<unknown>;
+      value.visit(visitor);
+    }
   }
 }
 

@@ -10,7 +10,7 @@ export async function run(
   types: [Function, z.ZodType][] | undefined,
   src: string
 ): Promise<unknown> {
-  const root = await parse(src);
+  const root = parse(src);
   const context = Context.create(globals, types, {});
   const value = await root.eval(context);
   return value;

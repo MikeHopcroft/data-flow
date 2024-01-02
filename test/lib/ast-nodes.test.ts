@@ -61,6 +61,8 @@ class MockASTNode implements ASTNode<number> {
   resolve(): ASTNode<number> {
     return this;
   }
+
+  visit(): void {}
 }
 
 describe('ASTNode', () => {

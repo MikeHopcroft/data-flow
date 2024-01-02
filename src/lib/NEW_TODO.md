@@ -1,13 +1,17 @@
 * New
-  * Update top-level README.md
+  * BUG?: object with one property
   * BUG? cycle detection in resolve
+  * YAML to JS converter
+  * Allow trailing comma in object literals
+  * Allow empty element in array literals (undefined)
+  * . Update top-level README.md
   * Warnings and errors stored in Program
   * Canonicalize aliases with hashes
   * Detect unresolved (orphaned) aliases.
   * Metrics
-    * (text,token)x(edit,rouge)x(source vs resolved)
-    * Text diff
-    * Token diff
+    * . (text,token)x(edit,rouge)x(source vs resolved)
+    * x Text diff
+    * x Token diff
     * Text RougeL
     * Token RougeL
     * Tree diff
@@ -18,11 +22,11 @@
   * x ZOD validation
   * x BUG? Memoization of resolve
   * Tree ops
-    * Immer
+    * x Immer
     * x Resolve
     * Function statistics
-    * Serialize + tokenize + diff
-    * Compare
+    * x Serialize + tokenize + diff
+    * x Compare
   * Repl demo
   * x AST resolver
   * AST walker
@@ -32,14 +36,11 @@
   * Analysis tools
     * Function call and slot extractor
 * README.md
-* YAML to JS converter
-* Serialize ASTNode to source code
-* Allow trailing comma in object literals
-* Allow empty element in array literals (undefined)
+* x Serialize ASTNode to source code
 * Define object literal property and value with ASTReference providing property name and value
 * Compare
-  * resolve() - looks up and replaces aliases
-  * compare() - distance metric for two AST trees
+  * x resolve() - looks up and replaces aliases
+  * x compare() - distance metric for two AST trees
     * . lodash deep compare of objects - checked with Chai's assert.deepEqual()
   * analyze() - information about functions and slots
 * x Remove old lib folder and unit tests. Rename lib2.
@@ -55,8 +56,8 @@
     * x No expression
     * x One expression
     * x Multiple expressions
-* Runtime type checking
-  * Funtion arity matches parameter list
+* x Runtime type checking
+  * x Funtion arity matches parameter list
 * x Check for cycles
 * x Optional semicolons after ALIAS_DEC, RETURN, USE
 * x Literals

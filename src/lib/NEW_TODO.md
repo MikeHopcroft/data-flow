@@ -1,9 +1,11 @@
 * New
-  * BUG?: object with one property
-  * BUG? cycle detection in resolve
-  * YAML to JS converter
   * Allow trailing comma in object literals
   * Allow empty element in array literals (undefined)
+  * Why do ASTNodes have a position?
+  * BUG?: object with one property
+  * BUG? cycle detection in resolve
+  * Consider pre-tokenizing alternative lexer rule (instead of retokenizing)
+  * YAML to JS converter
   * . Update top-level README.md
   * Warnings and errors stored in Program
   * Canonicalize aliases with hashes
@@ -22,9 +24,10 @@
   * x ZOD validation
   * x BUG? Memoization of resolve
   * Tree ops
+    * Reduce - constant subexpressions
     * x Immer
     * x Resolve
-    * Function statistics
+    * x Function statistics
     * x Serialize + tokenize + diff
     * x Compare
   * Repl demo

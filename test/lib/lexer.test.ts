@@ -1,7 +1,7 @@
 import {assert} from 'chai';
 import 'mocha';
 
-import {TokenKind, createLexer} from '../../src/lib';
+import {TokenKind, createLexer2} from '../../src/lib';
 
 describe('Lexer', () => {
   describe('Valid tokenizations', () => {
@@ -103,20 +103,24 @@ describe('Lexer', () => {
         input: ' `hello` ',
         expected: [{kind: TokenKind.TemplateComplete, text: '`hello`'}],
       },
-      {
-        name: 'template literal - typical',
-        input: ' `hello $ { } ${name}, how ${true}!` ',
-        expected: [
-          {kind: TokenKind.TemplateLeft, text: '`hello $ { } ${'},
-          {kind: TokenKind.Identifier, text: 'name'},
-          {kind: TokenKind.TemplateMiddle, text: '}, how ${'},
-          {kind: TokenKind.Boolean, text: 'true'},
-          {kind: TokenKind.TemplateRight, text: '}!`'},
-        ],
-      },
+      // DESIGN NOTE: the lexer no longer supports TokenKind.TemplateMiddle and
+      // TokenKind.TemplateRight in its default rule set. These two tokens are handled
+      // the the second ruleset. This functionality is used by TokenImpl2.retokenize(),
+      // which is called by templateTok().
+      // {
+      //   name: 'template literal - typical',
+      //   input: ' `hello $ { } ${name}, how ${true}!` ',
+      //   expected: [
+      //     {kind: TokenKind.TemplateLeft, text: '`hello $ { } ${'},
+      //     {kind: TokenKind.Identifier, text: 'name'},
+      //     {kind: TokenKind.TemplateMiddle, text: '}, how ${'},
+      //     {kind: TokenKind.Boolean, text: 'true'},
+      //     {kind: TokenKind.TemplateRight, text: '}!`'},
+      //   ],
+      // },
     ];
 
-    const lexer = createLexer();
+    const lexer = createLexer2();
 
     for (const {name, input, expected} of cases) {
       it(name, () => {
@@ -161,7 +165,7 @@ describe('Lexer', () => {
       },
     ];
 
-    const lexer = createLexer();
+    const lexer = createLexer2();
 
     for (const {name, input, expected} of cases) {
       it(name, () => {

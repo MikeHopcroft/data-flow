@@ -1,7 +1,7 @@
 import dedent from 'dedent';
-import {createLexer, tokenNames} from '../lib';
+import {createLexer2, tokenNames} from '../lib';
 
-const lexer = createLexer();
+const lexer = createLexer2();
 let token = lexer.parse(dedent`
   // out = flights({
   //   date: '10/10/23',

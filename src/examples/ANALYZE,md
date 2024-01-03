@@ -1,0 +1,32 @@
+# Analyze Example
+
+This example shows how to compute statstics on which external functions are called and the keys defined in objects passed as parameters.
+
+Consider the following data-flow program:
+~~~typescript
+out = flights({
+  date: '10/10/23',
+  airline: 'United',
+  number: 5117
+});
+back = flights({
+  date: '10/15/23',
+  airline: 'United',
+  number: 5030
+});
+return car({
+  location: out.destination,
+  pickup: `10/10/23 ${out.arrives}`,
+  dropoff: `10/10/23 ${back.departs.minus(1, hour)}`
+});
+~~~
+
+Here is the output of the `analyze` script:
+~~~
+$ node build/src/examples/analyze.js
+-------------------------------------------
+[
+  { name: 'car', slots: [ 'location', 'pickup', 'dropoff' ] },
+  { name: 'flights', slots: [ 'date', 'airline', 'number' ] },
+  { name: 'flights', slots: [ 'date', 'airline', 'number' ] }
+]~~~

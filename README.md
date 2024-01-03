@@ -41,6 +41,7 @@ This repo contains a number of sample applications to demonstrate the functional
 
 * [Simple](src/examples/SIMPLE.md) - shows how to use the parser/evaluator
 * [Metrics](src/examples/METRICS.md) - demonstrates metrics for comparing expressions
+* [Analyze](src/examples/ANALYZE,md) - demonstrates expression analysis techniques
 
 You can run these sample in GitHub Codespaces or you can clone the repo and build it locally. Instructions for both approaches follow.
 

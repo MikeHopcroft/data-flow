@@ -129,7 +129,7 @@ describe('Parser', () => {
         {name: 'array index - complex', input: 'b[f(1,1)]', expected: 3},
         {name: 'combination1', input: 'f(g(5,6).a,f(5, 2))', expected: 12},
         // The folling case was identified while implementing tokenization for templates.
-        {name: 'combination2', input: 'back.departs(123)', expected: 123},
+        {name: 'combination2', input: 'back.departs(123)', expected: 124},
       ],
     },
   ];
@@ -146,14 +146,16 @@ describe('Parser', () => {
     x: 123,
     a: {b: {c: 1010}},
     b: [1, 2, 3],
+    back: {departs: (a: number) => a + 1},
     f: (a: number, b: number) => a + b,
     g: (a: number, b: number) => ({a, b}),
   };
   const context = Context.create(
     globals,
     [
-      [globals.f, z.array(z.number(), z.number())],
-      [globals.g, z.array(z.number(), z.number())],
+      [globals.f, z.tuple([z.number(), z.number()])],
+      [globals.g, z.tuple([z.number(), z.number()])],
+      [globals.back.departs, z.tuple([z.number()])],
     ],
     {y: new ASTLiteral(456, position)}
   );

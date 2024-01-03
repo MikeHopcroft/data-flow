@@ -18,8 +18,8 @@ function go() {
     return car({
       location: out.destination,
       pickup: \`10/10/23 \${out.arrives}\`,
-      dropoff: back.departs.minus(1)
-      // dropoff: \`10/10/23 \${back.departs.minus(1)}\`
+      // dropoff: back.departs.minus(1)
+      dropoff: \`10/10/23 \${back.departs.minus(1, hour)}\`
     });
   `,
     // dedent`    return car({

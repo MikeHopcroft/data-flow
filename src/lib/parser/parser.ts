@@ -7,6 +7,7 @@ import {
   kmid,
   kright,
   list_sc,
+  lrec_sc,
   opt,
   opt_sc,
   rep_sc,
@@ -240,11 +241,15 @@ function applyProgram(
 
 const ALIAS_DEC = rule<TokenKind, Binding>();
 const ARRAY_INDEX_EXPR = rule<TokenKind, ASTNode<unknown>>();
+const ARRAY_INDEX_EXPR3 = rule<TokenKind, ASTNode<unknown>>();
 const BINDING = rule<TokenKind, Binding>();
 const DOT_EXPR = rule<TokenKind, ASTNode<unknown>>();
-const EXPR = rule<TokenKind, ASTNode<unknown>>();
+const DOT_EXPR3 = rule<TokenKind, Token<TokenKind.Identifier>>();
+const SIMPLE_EXPR = rule<TokenKind, ASTNode<unknown>>();
 const EXPR2 = rule<TokenKind, ASTNode<unknown>>();
+const EXPR3 = rule<TokenKind, ASTNode<unknown>>();
 const FUNCTION_CALL = rule<TokenKind, ASTNode<unknown>>();
+const FUNCTION_CALL3 = rule<TokenKind, ASTNode<unknown>[] | undefined>();
 const IDENTIFIER = rule<TokenKind, ASTNode<unknown>>();
 const LITERAL_EXPR = rule<TokenKind, ASTNode<unknown>>();
 const OBJECT = rule<TokenKind, ASTNode<unknown>>();
@@ -273,13 +278,78 @@ ALIAS_DEC.setPattern(
   )
 );
 
-EXPR2.setPattern(alt(DOT_EXPR, ARRAY_INDEX_EXPR, EXPR));
+// EXPR2.setPattern(
+//   alt(
+//     ARRAY_INDEX_EXPR,
+//     DOT_EXPR
+//     // FUNCTION_CALL
+//     // LITERAL_EXPR,
+//     // IDENTIFIER,
+//     // TEMPLATE_LITERAL
+//   )
+// );
+
+EXPR2.setPattern(
+  lrec_sc(
+    SIMPLE_EXPR,
+    alt(ARRAY_INDEX_EXPR3, DOT_EXPR3, FUNCTION_CALL3),
+    callback
+  )
+);
+
+function callback(
+  l: ASTNode<unknown>,
+  r:
+    | ASTNode<unknown>
+    | ASTNode<unknown>[]
+    | Token<TokenKind.Identifier>
+    | undefined
+  // tokenRange: TokenRange
+): ASTNode<unknown> {
+  if (r === undefined || r instanceof Array) {
+    return new ASTFunction(l, r || [], l.position);
+  } else if ('kind' in r) {
+    return new ASTDot(l, new ASTReference(r.text, r.pos), l.position);
+  } else {
+    return new ASTIndex(l, r, l.position);
+  }
+}
+
+ARRAY_INDEX_EXPR3.setPattern(
+  kmid(tok(TokenKind.LBracket), EXPR2, tok(TokenKind.RBracket))
+);
+
+DOT_EXPR3.setPattern(
+  kright(tok(TokenKind.Dot), tok(TokenKind.Identifier))
+  // applyDot3
+);
+
+FUNCTION_CALL3.setPattern(
+  kmid(
+    tok(TokenKind.LParen),
+    opt(list_sc(EXPR2, tok(TokenKind.Comma))),
+    tok(TokenKind.RParen)
+  )
+);
+// function applyDot3()
+
+SIMPLE_EXPR.setPattern(alt(IDENTIFIER, LITERAL_EXPR, TEMPLATE_LITERAL));
+
+// EXPR2.setPattern(alt(DOT_EXPR, ARRAY_INDEX_EXPR, EXPR));
 // EXPR2.setPattern(alt(DOT_EXPR, FUNCTION_CALL, ARRAY_INDEX_EXPR, EXPR));
+// EXPR.setPattern(alt(LITERAL_EXPR, FUNCTION_CALL, IDENTIFIER, TEMPLATE_LITERAL));
+
+ARRAY_INDEX_EXPR.setPattern(
+  apply(
+    seq(EXPR2, kmid(tok(TokenKind.LBracket), EXPR2, tok(TokenKind.RBracket))),
+    applyArrayIndex
+  )
+);
 
 DOT_EXPR.setPattern(
   apply(
     seq(
-      EXPR,
+      EXPR2,
       kright(tok(TokenKind.Dot), tok(TokenKind.Identifier)),
       rep_sc(kright(tok(TokenKind.Dot), tok(TokenKind.Identifier)))
     ),
@@ -287,14 +357,21 @@ DOT_EXPR.setPattern(
   )
 );
 
-ARRAY_INDEX_EXPR.setPattern(
+FUNCTION_CALL.setPattern(
   apply(
-    seq(EXPR, kmid(tok(TokenKind.LBracket), EXPR2, tok(TokenKind.RBracket))),
-    applyArrayIndex
+    seq(
+      tok(TokenKind.Identifier),
+      kmid(
+        tok(TokenKind.LParen),
+        opt(list_sc(EXPR2, tok(TokenKind.Comma))),
+        tok(TokenKind.RParen)
+      )
+    ),
+    applyFunction
   )
 );
 
-EXPR.setPattern(alt(LITERAL_EXPR, FUNCTION_CALL, IDENTIFIER, TEMPLATE_LITERAL));
+// EXPR.setPattern(alt(LITERAL_EXPR, FUNCTION_CALL, IDENTIFIER, TEMPLATE_LITERAL));
 
 IDENTIFIER.setPattern(apply(tok(TokenKind.Identifier), applyIdentifier));
 
@@ -329,20 +406,6 @@ TEMPLATE_LITERAL.setPattern(
       ),
       applyTemplate2
     )
-  )
-);
-
-FUNCTION_CALL.setPattern(
-  apply(
-    seq(
-      tok(TokenKind.Identifier),
-      kmid(
-        tok(TokenKind.LParen),
-        opt(list_sc(EXPR2, tok(TokenKind.Comma))),
-        tok(TokenKind.RParen)
-      )
-    ),
-    applyFunction
   )
 );
 

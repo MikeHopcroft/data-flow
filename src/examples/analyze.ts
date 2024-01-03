@@ -4,20 +4,22 @@ import {ASTFunction, ASTNode, ASTObject, ASTReference, parse} from '../lib';
 function go() {
   const cases: string[] = [
     dedent`
-    // out = flights({
-    //   date: '10/10/23',
-    //   airline: 'United',
-    //   number: 5117
-    // });
-    // back = flights({
-    //   date: '10/15/23',
-    //   airline: 'United',
-    //   number: 5030
-    // });
-    back = flights({});
+    out = flights({
+      date: '10/10/23',
+      airline: 'United',
+      number: 5117
+    });
+    back = flights({
+      date: '10/15/23',
+      airline: 'United',
+      number: 5030
+    });
+    // back = flights({});
     return car({
       location: out.destination,
-      pickup: \`a\`
+      pickup: \`10/10/23 \${out.arrives}\`,
+      dropoff: back.departs.minus(1)
+      // dropoff: \`10/10/23 \${back.departs.minus(1)}\`
     });
   `,
     // dedent`    return car({

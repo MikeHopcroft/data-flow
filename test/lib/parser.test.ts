@@ -128,6 +128,8 @@ describe('Parser', () => {
         {name: 'array index', input: 'b[1]', expected: 2},
         {name: 'array index - complex', input: 'b[f(1,1)]', expected: 3},
         {name: 'combination1', input: 'f(g(5,6).a,f(5, 2))', expected: 12},
+        // The folling case was identified while implementing tokenization for templates.
+        {name: 'combination2', input: 'back.departs(123)', expected: 123},
       ],
     },
   ];

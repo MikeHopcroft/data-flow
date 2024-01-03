@@ -34,6 +34,7 @@ import {
 import {saferGet} from './context';
 import {ErrorCode, ErrorEx} from './errors';
 import {createLexer, TokenKind} from './lexer';
+import {createLexer2, templateTok} from './lexer2';
 
 // ALIAS_DEC = Identifier Equals EXPR
 //
@@ -256,7 +257,7 @@ PROGRAM.setPattern(
     seq(
       rep_sc(ALIAS_DEC),
       alt(tok(TokenKind.Use), tok(TokenKind.Return)),
-      kleft(EXPR, opt(tok(TokenKind.Semicolon)))
+      kleft(EXPR2, opt(tok(TokenKind.Semicolon)))
     ),
     applyProgram
   )
@@ -273,6 +274,7 @@ ALIAS_DEC.setPattern(
 );
 
 EXPR2.setPattern(alt(DOT_EXPR, ARRAY_INDEX_EXPR, EXPR));
+// EXPR2.setPattern(alt(DOT_EXPR, FUNCTION_CALL, ARRAY_INDEX_EXPR, EXPR));
 
 DOT_EXPR.setPattern(
   apply(
@@ -317,10 +319,13 @@ TEMPLATE_LITERAL.setPattern(
         EXPR2,
         opt_sc(
           rep_sc(
-            seq(apply(tok(TokenKind.TemplateMiddle), applyTemplate), EXPR2)
+            seq(
+              apply(templateTok(TokenKind.TemplateMiddle), applyTemplate),
+              EXPR2
+            )
           )
         ),
-        apply(tok(TokenKind.TemplateRight), applyTemplate)
+        apply(templateTok(TokenKind.TemplateRight), applyTemplate)
       ),
       applyTemplate2
     )
@@ -371,11 +376,11 @@ TUPLE.setPattern(
 );
 
 export function parseExpression(text: string): ASTNode<unknown> {
-  const lexer = createLexer();
+  const lexer = createLexer2();
   return expectSingleResult(expectEOF(EXPR2.parse(lexer.parse(text))));
 }
 
 export function parse(text: string): ASTProgram {
-  const lexer = createLexer();
+  const lexer = createLexer2();
   return expectSingleResult(expectEOF(PROGRAM.parse(lexer.parse(text))));
 }

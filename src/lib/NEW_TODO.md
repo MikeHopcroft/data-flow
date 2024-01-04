@@ -1,4 +1,12 @@
 * New
+  * Security threat modelling
+    * Prototype poisoning
+    * toJSON()
+    * x toString()
+    * Running unapproved functions in the sandbox
+    * Running unapproved functions in the host
+    * Infinite loops
+  * Don't allow assignment of unapproved functions to properties
   * Allow trailing comma in object literals
   * Allow empty element in array literals (undefined)
   * Why do ASTNodes have a position?
@@ -117,3 +125,11 @@
 https://www.npmjs.com/package/@tootallnate/quickjs-emscripten
 https://www.npmjs.com/package/safe-eval
 https://www.npmjs.com/package/eval
+
+https://pragmaticwebsecurity.com/articles/spasecurity/json-stringify-xss
+https://dev.to/vuesomedev/the-secret-power-of-json-stringify-393b
+https://stackoverflow.com/questions/63926663/how-should-untrusted-json-be-sanitized-before-using-json-parse
+https://medium.com/intrinsic-blog/javascript-prototype-poisoning-vulnerabilities-in-the-wild-7bc15347c96
+
+Investigate defining get() and toJSON() and toString()
+

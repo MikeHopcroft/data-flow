@@ -46,9 +46,9 @@ async function go() {
   //   2. Parameters will by type checked at runtime using the provided
   //      zod validator. To allow any parameters, use z.any().
   const types: [Function, z.ZodType][] = [
-    [globals.a, z.array(z.number(), z.number())],
-    [globals.b, z.array(z.number(), z.number())],
-    [globals.c, z.array(z.number(), z.number())],
+    [globals.a, z.tuple([z.number(), z.number()])],
+    [globals.b, z.tuple([z.number(), z.number()])],
+    [globals.c, z.tuple([z.number(), z.number(), z.number()])],
   ];
 
   // Here we pass the `globals`, `types`, and the expression to be evaluated.

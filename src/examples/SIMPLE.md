@@ -48,7 +48,7 @@ two purposes:
   const types: [Function, z.ZodType][] = [
     [globals.a, z.array(z.number(), z.number())],
     [globals.b, z.array(z.number(), z.number())],
-    [globals.c, z.array(z.number(), z.number())],
+    [globals.c, z.array(z.number(), z.number(), z.number())],
   ];
 ~~~
 

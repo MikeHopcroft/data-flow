@@ -133,3 +133,4 @@ https://medium.com/intrinsic-blog/javascript-prototype-poisoning-vulnerabilities
 
 Investigate defining get() and toJSON() and toString()
 
+https://github.com/minimaxir/big-list-of-naughty-strings
